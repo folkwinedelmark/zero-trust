@@ -111,5 +111,5 @@ function AuthenticatedFlow() {
     )
   }
 
-  return <GameShell />
+  return <GameShell session={session} />
 }

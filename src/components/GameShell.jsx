@@ -24,7 +24,7 @@ import RulebookModal from './RulebookModal'
 import PlayerDirectoryModal from './PlayerDirectoryModal'
 
 /** Shell di gioco: mappa, timer, contromisure, log, alert minaccia */
-export default function GameShell() {
+export default function GameShell({ session }) {
   const { profile, refreshProfile } = useAuth()
   useBgmMatch(true)
   const debug = useDebug()
@@ -173,6 +173,9 @@ export default function GameShell() {
         onOpenArchive={() => setArchiveOpen(true)}
         onOpenRulebook={() => setRulebookOpen(true)}
         onOpenDirectory={() => setDirectoryOpen(true)}
+        isHost={Boolean(session?.isHost)}
+        concluding={Boolean(session?.busy)}
+        onConcludeMatch={session?.conclude}
         executorGigs={gigs.myExecuting}
         servers={map.servers}
       />

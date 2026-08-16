@@ -20,6 +20,7 @@ import {
   Settings,
   IdCard,
   Users,
+  Flag,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useAudio } from '../hooks/useAudio'
@@ -66,6 +67,9 @@ export default function GameHeader({
   onOpenArchive = null,
   onOpenRulebook = null,
   onOpenDirectory = null,
+  onConcludeMatch = null,
+  concluding = false,
+  isHost = false,
   executorGigs = [],
   servers = [],
 }) {
@@ -306,11 +310,51 @@ export default function GameHeader({
                 onOpenRulebook?.()
               }}
             />
+            {isHost && onConcludeMatch && (
+              <NavChip
+                icon={Flag}
+                label="Chiudi ciclo"
+                title="Concludi la partita e vai alla schermata di fine ciclo"
+                tone="red"
+                disabled={concluding}
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      'Chiudere il ciclo di rete? Verranno calcolati i vincitori e tutti passeranno alla schermata di fine partita.',
+                    )
+                  ) {
+                    return
+                  }
+                  playClick()
+                  void onConcludeMatch()
+                }}
+              />
+            )}
             <DebugPanel />
           </div>
 
           <div className="no-scrollbar flex min-w-0 items-center gap-1.5 overflow-x-auto whitespace-nowrap md:hidden">
             <HeaderStats profile={profile} />
+            {isHost && onConcludeMatch && (
+              <NavChip
+                icon={Flag}
+                label="Chiudi ciclo"
+                title="Concludi la partita"
+                tone="red"
+                disabled={concluding}
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      'Chiudere il ciclo di rete? Verranno calcolati i vincitori e tutti passeranno alla schermata di fine partita.',
+                    )
+                  ) {
+                    return
+                  }
+                  playClick()
+                  void onConcludeMatch()
+                }}
+              />
+            )}
           </div>
         </div>
 
@@ -471,14 +515,16 @@ const NAV_TONES = {
     'border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20',
   fuchsia:
     'border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-200 hover:bg-fuchsia-500/20',
+  red: 'border-red-500/40 bg-red-500/10 text-red-200 hover:bg-red-500/20',
 }
 
-function NavChip({ icon: Icon, label, title, tone, onClick }) {
+function NavChip({ icon: Icon, label, title, tone, onClick, disabled = false }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex shrink-0 items-center gap-1.5 border px-1.5 py-1.5 text-xs uppercase tracking-wider transition lg:px-2 ${NAV_TONES[tone]}`}
+      disabled={disabled}
+      className={`inline-flex shrink-0 items-center gap-1.5 border px-1.5 py-1.5 text-xs uppercase tracking-wider transition lg:px-2 disabled:cursor-not-allowed disabled:opacity-50 ${NAV_TONES[tone]}`}
       title={title}
     >
       <Icon className="h-3.5 w-3.5" />
