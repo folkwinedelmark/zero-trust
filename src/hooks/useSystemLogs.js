@@ -98,6 +98,13 @@ export function useSystemLogs() {
           if (mine) void load()
         },
       )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'logs' },
+        () => {
+          void load()
+        },
+      )
       .subscribe()
 
     return () => {

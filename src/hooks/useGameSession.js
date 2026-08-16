@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import {
   MATCH_SETTINGS_EVENT,
   WORLD_REFRESH_EVENT,
+  requestWorldRefresh,
 } from '../lib/constants'
 import {
   activateScheduledMatch,
@@ -291,6 +292,7 @@ export function useGameSession() {
       localOverrideRef.current = null
       await refreshProfile()
       await load()
+      requestWorldRefresh()
       return { data, error: null }
     } catch (err) {
       setError(err.message ?? 'Reset lobby fallito')

@@ -50,6 +50,22 @@ export function deducedFactionMeta(id) {
   return DEDUCED_FACTIONS.find((f) => f.id === id) ?? DEDUCED_FACTIONS[0]
 }
 
+function factionToDeducedId(faction) {
+  if (faction === 'security') return 'CORP'
+  if (faction === 'hacktivist') return 'REBEL'
+  if (faction === 'consultant') return 'MERCENARY'
+  return 'UNKNOWN'
+}
+
+/** In directory: la tua fazione è nota; le altre restano deduzioni private. */
+export function directoryFactionTag(viewer, player, note) {
+  const isSelf = Boolean(viewer?.id && viewer.id === player?.id)
+  if (isSelf) {
+    return deducedFactionMeta(factionToDeducedId(viewer?.faction))
+  }
+  return deducedFactionMeta(note?.deduced_faction)
+}
+
 export function canSeeDirectoryClass(viewer, player, note) {
   if (!player) return false
   if (viewer?.id && viewer.id === player.id) return true

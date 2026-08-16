@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Briefcase,
   CircleHelp,
@@ -48,9 +49,9 @@ export default function RulebookModal({ open, onClose }) {
 
   const active = SECTIONS.find((s) => s.id === section) ?? SECTIONS[0]
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 p-4 pb-20 md:pb-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4 pb-20 md:pb-4"
       onClick={close}
     >
       <div
@@ -122,7 +123,8 @@ export default function RulebookModal({ open, onClose }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

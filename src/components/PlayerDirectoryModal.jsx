@@ -8,8 +8,8 @@ import {
   DEDUCED_FACTIONS,
   canSeeDirectoryClass,
   clampHeat,
-  deducedFactionMeta,
   directoryClassLabel,
+  directoryFactionTag,
   directoryStatus,
   directoryWealth,
 } from '../lib/playerDirectory'
@@ -124,7 +124,7 @@ function DirectoryRow({
   const offline = status.id === 'offline'
   const heat = clampHeat(player.heat)
   const stars = Math.max(1, Math.min(5, Number(player.reputation) || 3))
-  const tag = deducedFactionMeta(note?.deduced_faction)
+  const tag = directoryFactionTag(viewer, player, note)
   const isSelf = viewer?.id === player.id
   const wealth = directoryWealth(viewer, player)
 
@@ -132,7 +132,10 @@ function DirectoryRow({
     <li className={expanded ? 'bg-zinc-950/70' : offline ? 'opacity-55' : ''}>
       <button
         type="button"
-        onClick={onToggle}
+        onClick={() => {
+          if (isSelf) return
+          onToggle()
+        }}
         className="flex w-full flex-col gap-2 px-4 py-3 text-left hover:bg-zinc-800/40 sm:flex-row sm:items-center sm:gap-4"
       >
         <div className="min-w-0 flex-1">
@@ -209,6 +212,7 @@ function DirectoryRow({
             {status.label}
           </span>
           <span
+            title={isSelf ? 'La tua fazione' : tag.title}
             className={`inline-flex border px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${tag.activeClass}`}
           >
             {tag.label}
@@ -216,7 +220,7 @@ function DirectoryRow({
         </div>
       </button>
 
-      {expanded && (
+      {expanded && !isSelf && (
         <DeductionDrawer
           note={note}
           saving={saving}

@@ -3,6 +3,7 @@ import { Check, Loader2, LogOut, Shield, Users, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useDebug } from '../debug/DebugContext'
 import DebugPanel from '../debug/DebugPanel'
+import RulebookButton from './RulebookButton'
 import { factionBarClass, factionBarTag } from '../lib/constants'
 import {
   defaultScheduledStart,
@@ -63,6 +64,7 @@ export default function LobbyView({ session }) {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <RulebookButton />
           <DebugPanel />
           <button
             type="button"

@@ -1,6 +1,7 @@
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import DebugPanel from '../debug/DebugPanel'
+import RulebookButton from './RulebookButton'
 import {
   factionBarClass,
   factionBarTag,
@@ -54,7 +55,10 @@ export default function FactionBriefingModal({ session }) {
             <p className="font-display text-xs uppercase tracking-[0.4em] text-amber-400/85">
               Faction Briefing
             </p>
-            <DebugPanel />
+            <div className="flex shrink-0 items-center gap-2">
+              <RulebookButton />
+              <DebugPanel />
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
