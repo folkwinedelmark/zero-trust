@@ -1,0 +1,19 @@
+-- =============================================================================
+-- ZERO TRUST — Fase 3: Timer / azioni lunghe
+-- =============================================================================
+-- Nessuna migrazione obbligatoria: lo schema Fase 1 (slots + profiles.status)
+-- è sufficiente per start_time / end_time / user_id / action_type / BUSY.
+--
+-- Opzionale: ripristina i PA per i test locali
+-- update public.profiles set pa = 4, status = 'idle';
+--
+-- Opzionale: libera tutti gli slot bloccati in test
+-- update public.slots set
+--   user_id = null,
+--   action_type = null,
+--   start_time = null,
+--   end_time = null,
+--   is_decoy = false,
+--   is_spoofed = false,
+--   spoofed_as_user_id = null,
+--   spoofed_action = null;

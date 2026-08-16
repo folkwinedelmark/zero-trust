@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Share+Tech+Mono&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-display: 'Share Tech Mono', ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100svh;
+    background: #09090b;
+  }
+
+  #root {
+    min-height: 100svh;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+@layer utilities {
+  .threat-pulse {
+    animation: threat-pulse 1s ease-in-out infinite;
+  }
+
+  .pb-safe {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes class-glitch {
+  0%,
+  90%,
+  100% {
+    opacity: 0.72;
+    transform: none;
+  }
+  92% {
+    opacity: 0.35;
+    transform: translateX(-1px);
+  }
+  96% {
+    opacity: 0.95;
+    transform: translateX(1px);
+  }
+}
+
+.directory-class-unknown {
+  animation: class-glitch 2.8s steps(2, end) infinite;
+  text-shadow:
+    0 0 6px rgba(34, 211, 238, 0.28),
+    -1px 0 rgba(239, 68, 68, 0.4);
+}
+
+.endgame-scanlines {
+  opacity: 0.08;
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent,
+    transparent 3px,
+    rgba(255, 255, 255, 0.35) 4px
+  );
+}
+
+.endgame-banner-corrupt {
+  filter: grayscale(1) contrast(1.35) brightness(0.45) hue-rotate(320deg);
+  transform: scale(1.04);
+}
+
+.endgame-glitch-text {
+  animation: class-glitch 1.6s steps(2, end) infinite;
+  text-shadow:
+    2px 0 rgba(239, 68, 68, 0.55),
+    -2px 0 rgba(34, 211, 238, 0.35);
+}
+
+@keyframes threat-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35);
+  }
+  50% {
+    opacity: 0.88;
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+}
