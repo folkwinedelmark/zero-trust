@@ -15,73 +15,68 @@ const BgmMatchContext = createContext({
   setInMatch: () => {},
 })
 
-function stopStray(audio) {
-  if (!audio || typeof audio.pause !== 'function') return
-  try {
-    audio.pause()
-    audio.loop = false
-    audio.removeAttribute?.('src')
-    audio.src = ''
-    audio.load?.()
-  } catch {
-    /* ignore */
+function getGlobalBgm() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return null
   }
+
+  if (window.__globalBGM && typeof window.__globalBGM.play === 'function') {
+    return window.__globalBGM
+  }
+
+  let el = document.getElementById('zt-bgm')
+  if (!el) {
+    el = document.createElement('audio')
+    el.id = 'zt-bgm'
+    document.body.appendChild(el)
+  }
+
+  el.loop = true
+  el.preload = 'auto'
+  if (!el.getAttribute('src')) el.src = BGM_SRC
+
+  window.__globalBGM = el
+  window.__ZT_BGM_AUDIO__ = el
+  return el
+}
+
+function pauseBgm(audio) {
+  if (typeof window !== 'undefined') window.__globalBGMPlayLock = false
+  if (!audio) return
+  audio.pause()
 }
 
 /**
- * Una sola istanza Audio per tutta la pagina.
- * Adotta eventuali handle legacy e spegne i duplicati.
+ * Chrome/Vercel: due play() a pochi ms (effect + click) mentre paused
+ * è ancora true avviano due decoder sulla stessa traccia.
  */
-function getGlobalBgm() {
-  if (typeof window === 'undefined' || typeof Audio === 'undefined') return null
-
-  const adopted =
-    window.__globalBGM instanceof Audio
-      ? window.__globalBGM
-      : window.__ZT_BGM_AUDIO__ instanceof Audio
-        ? window.__ZT_BGM_AUDIO__
-        : null
-
-  if (adopted) {
-    if (
-      window.__ZT_BGM_AUDIO__ instanceof Audio &&
-      window.__ZT_BGM_AUDIO__ !== adopted
-    ) {
-      stopStray(window.__ZT_BGM_AUDIO__)
-    }
-    window.__globalBGM = adopted
-    window.__ZT_BGM_AUDIO__ = adopted
-    adopted.loop = true
-    return adopted
-  }
-
-  const audio = new Audio(BGM_SRC)
-  audio.loop = true
-  audio.preload = 'auto'
-  window.__globalBGM = audio
-  window.__ZT_BGM_AUDIO__ = audio
-  return audio
-}
-
 function tryPlay(audio) {
-  if (!audio) return
+  if (!audio || typeof window === 'undefined') return
+  if (window.__globalBGMPlayLock) return
   if (!audio.paused && !audio.ended) return
-  void audio.play().catch(() => {
-    /* autoplay bloccato finché non c’è un gesto utente */
-  })
+
+  window.__globalBGMPlayLock = true
+  void audio
+    .play()
+    .then(() => {
+      window.__globalBGMPlayLock = true
+    })
+    .catch(() => {
+      window.__globalBGMPlayLock = false
+    })
 }
 
 function bindUnlockOnce() {
   if (typeof window === 'undefined' || window.__globalBGMUnlockBound) return
   window.__globalBGMUnlockBound = true
-  const unlock = () => {
-    const audio = getGlobalBgm()
-    if (!audio || !window.__globalBGMShouldPlay) return
-    tryPlay(audio)
-  }
-  window.addEventListener('click', unlock)
-  window.addEventListener('pointerdown', unlock)
-  window.addEventListener('keydown', unlock)
+  window.addEventListener(
+    'pointerdown',
+    () => {
+      if (!window.__globalBGMShouldPlay) return
+      tryPlay(getGlobalBgm())
+    },
+    { passive: true },
+  )
 }
 
 export function BgmProvider({ children }) {
@@ -103,15 +98,13 @@ export function useBgmMatch(inMatch) {
 
 /**
  * Motore BGM — una sola volta da App.
- * L'elemento Audio vive su window.__globalBGM e non viene mai ricreato.
+ * Unico elemento: #zt-bgm / window.__globalBGM. Mai new Audio().
  */
 export function useBGM() {
   const { profile } = useAuth()
   const { inMatch } = useContext(BgmMatchContext)
   const settings = parseSettings(profile?.settings)
-  const musicEnabled = settings.music_enabled !== false
-  const musicVolume = settings.music_volume
-  const shouldPlay = Boolean(inMatch && musicEnabled)
+  const shouldPlay = Boolean(inMatch && settings.music_enabled)
 
   useEffect(() => {
     const audio = getGlobalBgm()
@@ -120,11 +113,11 @@ export function useBGM() {
     bindUnlockOnce()
     window.__globalBGMShouldPlay = shouldPlay
     audio.loop = true
-    audio.volume = musicVolume
+    audio.volume = settings.music_volume
 
     if (shouldPlay) tryPlay(audio)
-    else audio.pause()
+    else pauseBgm(audio)
 
     return undefined
-  }, [shouldPlay, musicVolume])
+  }, [shouldPlay, settings.music_volume])
 }

@@ -6,17 +6,21 @@ import { AuthProvider } from './context/AuthContext.jsx'
 import { DebugProvider } from './debug/DebugContext.jsx'
 import { NightTruceProvider } from './context/NightTruceContext.jsx'
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <AuthProvider>
-      <DebugProvider>
-        <NightTruceProvider>
-          <App />
-        </NightTruceProvider>
-      </DebugProvider>
-    </AuthProvider>
-  </StrictMode>,
-)
+const rootEl = document.getElementById('root')
+if (rootEl && !window.__ZT_REACT_ROOT__) {
+  window.__ZT_REACT_ROOT__ = createRoot(rootEl)
+  window.__ZT_REACT_ROOT__.render(
+    <StrictMode>
+      <AuthProvider>
+        <DebugProvider>
+          <NightTruceProvider>
+            <App />
+          </NightTruceProvider>
+        </DebugProvider>
+      </AuthProvider>
+    </StrictMode>,
+  )
+}
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
