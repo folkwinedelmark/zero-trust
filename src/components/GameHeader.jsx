@@ -159,8 +159,8 @@ export default function GameHeader({
               />
               <div className="min-w-0 flex-1">
                 <p className="sr-only">Zero Trust</p>
-                <p className="flex min-w-0 items-center gap-2">
-                  <span className="min-w-0 truncate text-lg font-bold uppercase tracking-wide text-zinc-100">
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="text-sm font-bold uppercase tracking-wide text-zinc-100 sm:text-base md:text-lg">
                     {profile.name}
                   </span>
                   <span className="inline-flex shrink-0 items-center gap-2">

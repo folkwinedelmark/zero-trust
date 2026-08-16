@@ -9,9 +9,8 @@
  * ---------------------------------------------------------------------------
  */
 
-/** Mostra il badge DEBUG. Disattiva con VITE_ENABLE_DEBUG=false in .env */
-export const DEBUG_UI_ENABLED =
-  import.meta.env.VITE_ENABLE_DEBUG !== 'false'
+/** Mostra God Mode solo in `vite` locale. Assente sul build Vercel. */
+export const DEBUG_UI_ENABLED = import.meta.env.DEV
 
 export const DEBUG_CREDIT_BOOST = 1000
 export const DEBUG_STORAGE_KEY = 'zt-debug-mode'
