@@ -9,53 +9,77 @@ import { useAuth } from '../context/AuthContext'
 import { parseSettings } from '../lib/settings'
 
 const BGM_SRC = '/cyberpunktheme.mp3'
-const BGM_WINDOW_KEY = '__ZT_BGM_AUDIO__'
 
 const BgmMatchContext = createContext({
   inMatch: false,
   setInMatch: () => {},
 })
 
-function getBgm() {
+function stopStray(audio) {
+  if (!audio || typeof audio.pause !== 'function') return
+  try {
+    audio.pause()
+    audio.loop = false
+    audio.removeAttribute?.('src')
+    audio.src = ''
+    audio.load?.()
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Una sola istanza Audio per tutta la pagina.
+ * Adotta eventuali handle legacy e spegne i duplicati.
+ */
+function getGlobalBgm() {
   if (typeof window === 'undefined' || typeof Audio === 'undefined') return null
-  const existing = window[BGM_WINDOW_KEY]
-  if (existing) return existing
+
+  const adopted =
+    window.__globalBGM instanceof Audio
+      ? window.__globalBGM
+      : window.__ZT_BGM_AUDIO__ instanceof Audio
+        ? window.__ZT_BGM_AUDIO__
+        : null
+
+  if (adopted) {
+    if (
+      window.__ZT_BGM_AUDIO__ instanceof Audio &&
+      window.__ZT_BGM_AUDIO__ !== adopted
+    ) {
+      stopStray(window.__ZT_BGM_AUDIO__)
+    }
+    window.__globalBGM = adopted
+    window.__ZT_BGM_AUDIO__ = adopted
+    adopted.loop = true
+    return adopted
+  }
 
   const audio = new Audio(BGM_SRC)
   audio.loop = true
   audio.preload = 'auto'
-  audio.setAttribute('data-zt-bgm', '1')
-  window[BGM_WINDOW_KEY] = audio
+  window.__globalBGM = audio
+  window.__ZT_BGM_AUDIO__ = audio
   return audio
 }
 
-function isPlaying(audio) {
-  return Boolean(audio && !audio.paused && !audio.ended)
-}
-
 function tryPlay(audio) {
-  if (!audio || isPlaying(audio)) return
+  if (!audio) return
+  if (!audio.paused && !audio.ended) return
   void audio.play().catch(() => {
     /* autoplay bloccato finché non c’è un gesto utente */
   })
 }
 
-function stopBgm(audio) {
-  if (!audio) return
-  audio.pause()
-  audio.currentTime = 0
-}
-
-let unlockBound = false
-let shouldPlayNow = false
-
 function bindUnlockOnce() {
-  if (unlockBound || typeof window === 'undefined') return
-  unlockBound = true
+  if (typeof window === 'undefined' || window.__globalBGMUnlockBound) return
+  window.__globalBGMUnlockBound = true
   const unlock = () => {
-    if (!shouldPlayNow) return
-    tryPlay(getBgm())
+    const audio = getGlobalBgm()
+    if (!audio || !window.__globalBGMShouldPlay) return
+    tryPlay(audio)
   }
+  window.addEventListener('click', unlock)
   window.addEventListener('pointerdown', unlock)
   window.addEventListener('keydown', unlock)
 }
@@ -78,27 +102,29 @@ export function useBgmMatch(inMatch) {
 }
 
 /**
- * Motore BGM: chiamare una sola volta da App.
- * Non crea un secondo Audio anche se il componente fa re-render.
+ * Motore BGM — una sola volta da App.
+ * L'elemento Audio vive su window.__globalBGM e non viene mai ricreato.
  */
 export function useBGM() {
   const { profile } = useAuth()
   const { inMatch } = useContext(BgmMatchContext)
   const settings = parseSettings(profile?.settings)
-  const shouldPlay = Boolean(inMatch && settings.music_enabled)
-  shouldPlayNow = shouldPlay
+  const musicEnabled = settings.music_enabled !== false
+  const musicVolume = settings.music_volume
+  const shouldPlay = Boolean(inMatch && musicEnabled)
 
   useEffect(() => {
+    const audio = getGlobalBgm()
+    if (!audio) return undefined
+
     bindUnlockOnce()
-    const audio = getBgm()
-    if (!audio) return
-    audio.volume = settings.music_volume
-  }, [settings.music_volume])
+    window.__globalBGMShouldPlay = shouldPlay
+    audio.loop = true
+    audio.volume = musicVolume
 
-  useEffect(() => {
-    const audio = getBgm()
-    if (!audio) return
     if (shouldPlay) tryPlay(audio)
-    else stopBgm(audio)
-  }, [shouldPlay])
+    else audio.pause()
+
+    return undefined
+  }, [shouldPlay, musicVolume])
 }
