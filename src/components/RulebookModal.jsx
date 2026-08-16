@@ -20,8 +20,14 @@ import {
   HEAT_ON_KICK,
   HEAT_ON_TRACE,
   PA_MAX,
+  TIME_ACTION,
+  TIME_EXTRACT,
+  TIME_KICK,
+  TIME_TRACE,
+  TIME_TRAVEL,
   UNBLOCK_COST,
 } from '../lib/constants'
+import { formatRemaining } from '../lib/actions'
 
 const SECTIONS = [
   { id: 'rules', n: '01', label: 'Regole Generali', icon: ScrollText },
@@ -169,6 +175,13 @@ function SectionRules() {
           guerra ideologica e la classifica mercenary vengono calcolate in quel
           momento.
         </p>
+        <ul className="mt-3 space-y-1 font-mono text-sm text-slate-300">
+          <li>Travel / Login · {formatRemaining(TIME_TRAVEL)}</li>
+          <li>Attack / Defend / Farm · {formatRemaining(TIME_ACTION)}</li>
+          <li>Trace · {formatRemaining(TIME_TRACE)}</li>
+          <li>Kick · {formatRemaining(TIME_KICK)}</li>
+          <li>Extract · {formatRemaining(TIME_EXTRACT)}</li>
+        </ul>
       </Block>
 
       <Block>

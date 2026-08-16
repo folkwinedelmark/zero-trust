@@ -1,6 +1,7 @@
 import {
   ACTION_PA_COST,
   TIME_ACTION,
+  TIME_DEEP_SCAN,
   TIME_EXTRACT,
   TIME_KICK,
   TIME_TRACE,
@@ -30,10 +31,10 @@ export const EMPTY_SLOT = {
 
 /**
  * Durata effettiva dell'azione, con passivi di classe.
- * Esempi con default test (45s / 12s / 10s):
- *   - Ghost Attack: 45s × 0.80 = 36s
- *   - SysAdmin Defend: 45s × 0.80 = 36s · Trace: 12s × 0.80 = 9.6s
- *   - Analyst Trace: 12s × 0.60 = 7.2s
+ * Playtest: Attack 20m · Trace 6m · Kick 3m · Extract 40m · Deep Scan 3m.
+ *   - Ghost Attack: 20m × 0.80 = 16m
+ *   - SysAdmin Defend/Trace/Kick: −20%
+ *   - Analyst Trace: 6m × 0.60 = 3m 36s
  */
 export function getActionDurationMs(
   actionType,
@@ -48,6 +49,7 @@ export function getActionDurationMs(
   if (actionType === 'trace') ms = TIME_TRACE
   else if (actionType === 'kick') ms = TIME_KICK
   else if (actionType === 'extract') ms = TIME_EXTRACT
+  else if (actionType === 'deep_scan') ms = TIME_DEEP_SCAN
 
   // Ghost: −20% su Attack
   if (role === 'ghost' && actionType === 'attack') {
@@ -89,6 +91,7 @@ export function iceDeltaForAction(actionType, hardwareId = null) {
   return iceDeltaWithHardware(actionType, hardwareId)
 }
 
+/** Clock MM:SS fino a 59:59, poi HH:MM:SS. Extract 40m → 40:00. */
 export function formatRemaining(ms) {
   const totalSec = Math.max(0, Math.ceil((Number(ms) || 0) / 1000))
   const days = Math.floor(totalSec / 86_400)

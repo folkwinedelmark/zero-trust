@@ -6,7 +6,7 @@ export const ACTION_PA_COST = 1
 export const BACKDOOR_PA_SURCHARGE = 1
 export const UNBLOCK_COST = 100
 
-/** Travel/login verso uno slot server. Crypto Network Card: metà. Test: 30s. */
+/** Travel/login verso uno slot server. Crypto Network Card: metà. */
 export const TIME_TRAVEL = 30_000
 
 /** Cooldown dopo un cambio hardware. Test: 30s (poi minuti). */
@@ -22,25 +22,27 @@ export const HEAT_ON_KICK = 2
 export const HEAT_DURATION_PENALTY = 0.1
 
 /**
- * Durate configurabili via .env.
- * Default bilanciati per test contromisure:
- *   ACTION 45s (finestra ampia) · TRACE 12s · KICK 10s
- * GDD produzione: ACTION 300000 · EXTRACT 300000 · TRACE 120000 · KICK 60000
+ * Timer playtest asincrono (1 settimana).
+ * TTK difensore: 30s travel + 6m Trace + 3m Kick = 9m 30s.
+ * Attack 20m → ~10.5m di buffer per loggarsi e reagire.
+ * Extract 40m: high stakes senza stall infinito.
+ * Override opzionali via VITE_TIME_*_MS.
  */
-export const TIME_ACTION_GDD = 300_000
-export const TIME_EXTRACT_GDD = 300_000
-export const TIME_TRACE_GDD = 120_000
-export const TIME_KICK_GDD = 60_000
+export const TIME_ACTION_GDD = 1_200_000
+export const TIME_EXTRACT_GDD = 2_400_000
+export const TIME_TRACE_GDD = 360_000
+export const TIME_KICK_GDD = 180_000
 
 export const TIME_ACTION = Number(
-  import.meta.env.VITE_TIME_ACTION_MS ?? 45_000,
+  import.meta.env.VITE_TIME_ACTION_MS ?? 1_200_000,
 )
-export const TIME_TRACE = Number(import.meta.env.VITE_TIME_TRACE_MS ?? 12_000)
-export const TIME_KICK = Number(import.meta.env.VITE_TIME_KICK_MS ?? 10_000)
-
-export const TIME_DEEP_SCAN = 90_000
+export const TIME_TRACE = Number(import.meta.env.VITE_TIME_TRACE_MS ?? 360_000)
+export const TIME_KICK = Number(import.meta.env.VITE_TIME_KICK_MS ?? 180_000)
+export const TIME_DEEP_SCAN = Number(
+  import.meta.env.VITE_TIME_DEEP_SCAN_MS ?? 180_000,
+)
 export const TIME_EXTRACT = Number(
-  import.meta.env.VITE_TIME_EXTRACT_MS ?? 300_000,
+  import.meta.env.VITE_TIME_EXTRACT_MS ?? 2_400_000,
 )
 export const DECOY_DURATION = 3_600_000
 export const FREEZE_DURATION = 86_400_000

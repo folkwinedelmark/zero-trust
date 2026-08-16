@@ -1,21 +1,26 @@
 import { HARDWARE_IDS } from './afterlifeCatalog'
 import { getFarmGain, hasHardware } from './hardware'
-import { getActionDurationMs } from './actions'
-import { TIME_ACTION, TIME_EXTRACT, TIME_KICK, TIME_TRACE } from './constants'
+import { formatRemaining, getActionDurationMs } from './actions'
+import {
+  TIME_ACTION,
+  TIME_DEEP_SCAN,
+  TIME_EXTRACT,
+  TIME_KICK,
+  TIME_TRACE,
+} from './constants'
 
 export const BREAKDOWN_CLASS_COLOR = 'text-purple-400'
 export const BREAKDOWN_HARDWARE_COLOR = 'text-cyan-400'
 
 export function formatDurationSeconds(ms) {
-  const sec = Math.max(0, Number(ms) || 0) / 1000
-  if (Number.isInteger(sec)) return `${sec}s`
-  return `${sec.toFixed(1).replace(/\.0$/, '')}s`
+  return formatRemaining(ms)
 }
 
 function baseDurationMs(actionType) {
   if (actionType === 'trace') return TIME_TRACE
   if (actionType === 'kick') return TIME_KICK
   if (actionType === 'extract') return TIME_EXTRACT
+  if (actionType === 'deep_scan') return TIME_DEEP_SCAN
   return TIME_ACTION
 }
 

@@ -883,9 +883,9 @@ export default function NodeView({
           Slot di accesso
         </h2>
         <p className="text-xs text-zinc-600">
-          Azione {Math.round(TIME_ACTION / 1000)}s · Extract{' '}
-          {Math.round(TIME_EXTRACT / 1000)}s · Trace{' '}
-          {Math.round(TIME_TRACE / 1000)}s · Kick {Math.round(TIME_KICK / 1000)}s
+          Azione {formatRemaining(TIME_ACTION)} · Extract{' '}
+          {formatRemaining(TIME_EXTRACT)} · Trace {formatRemaining(TIME_TRACE)} ·
+          Kick {formatRemaining(TIME_KICK)}
         </p>
       </div>
 
