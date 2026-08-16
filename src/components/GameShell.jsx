@@ -13,7 +13,7 @@ import { useSystemLogs } from '../hooks/useSystemLogs'
 import { useGigs } from '../hooks/useGigs'
 import { useAuth } from '../context/AuthContext'
 import { useDebug } from '../debug/DebugContext'
-import { useBGM } from '../hooks/useBGM'
+import { useBgmMatch } from '../hooks/useBGM'
 import Dashboard from './Dashboard'
 import GameHeader from './GameHeader'
 import AfterlifeView from './AfterlifeView'
@@ -26,7 +26,7 @@ import PlayerDirectoryModal from './PlayerDirectoryModal'
 /** Shell di gioco: mappa, timer, contromisure, log, alert minaccia */
 export default function GameShell() {
   const { profile, refreshProfile } = useAuth()
-  useBGM({ inMatch: true })
+  useBgmMatch(true)
   const debug = useDebug()
   const map = useRealtimeMap()
   const systemLogs = useSystemLogs()

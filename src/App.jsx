@@ -1,6 +1,7 @@
 import { Loader2 } from 'lucide-react'
 import { useAuth } from './context/AuthContext'
 import { useGameSession } from './hooks/useGameSession'
+import { BgmProvider, useBGM } from './hooks/useBGM'
 import AuthScreen from './components/AuthScreen'
 import CharacterCreation from './components/CharacterCreation'
 import ClassSelectionModal from './components/ClassSelectionModal'
@@ -12,6 +13,15 @@ import GameShell from './components/GameShell'
 import VersionWatermark from './components/VersionWatermark'
 
 export default function App() {
+  return (
+    <BgmProvider>
+      <AppShell />
+    </BgmProvider>
+  )
+}
+
+function AppShell() {
+  useBGM()
   const { loading, isAuthenticated, needsCharacter, profile, passwordRecovery } =
     useAuth()
 
