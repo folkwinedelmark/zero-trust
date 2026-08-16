@@ -717,8 +717,9 @@ function SectionIntel() {
       <Block>
         <Heading tone="fuchsia">Intel Registry (Log Personali)</Heading>
         <p className="mt-3 text-base leading-relaxed text-slate-300">
-          Il tuo feed di eventi è privato. Mostra solo le tue azioni e i
-          tentativi ostili subiti. Se vieni attaccato da un Ghost senza aver
+          Il tuo feed di eventi è privato. Mostra le tue azioni, i tentativi
+          ostili subiti e gli allarmi di intrusione sui server della tua
+          fazione. Se vieni attaccato da un Ghost senza aver
           fatto un Trace, il log registrerà un anonimo{' '}
           <span className="font-mono tracking-wider text-fuchsia-300">
             [ ENCRYPTED ID ]

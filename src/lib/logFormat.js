@@ -25,6 +25,7 @@ export const ACTION_LABELS = {
   class_revealed: 'NET',
   class_intel: 'INTEL',
   match_end: 'SYSTEM',
+  intrusion_alert: 'ALLARME',
 }
 
 /** Categoria UI → palette */
@@ -104,6 +105,7 @@ export function resolveTone(log, viewerId) {
     type === 'nda_received' ||
     type === 'asset_freeze_received' ||
     type === 'doxxing_received' ||
+    type === 'intrusion_alert' ||
     type.includes('blocked') ||
     (type === 'kick' && iAmTarget && outcome === 'success')
   ) {
@@ -167,6 +169,7 @@ const TARGET_ONLY_EVENTS = new Set([
   'nda_received',
   'asset_freeze_received',
   'doxxing_received',
+  'intrusion_alert',
 ])
 
 const ACTOR_ONLY_EVENTS = new Set([
@@ -257,13 +260,19 @@ function isGlobalSystemLog(log) {
     type === 'daily_tick' ||
     type === 'game_start' ||
     type === 'lobby_reset' ||
-    type === 'auction_global'
+    type === 'auction_global' ||
+    type === 'intrusion_alert'
   ) {
     return true
   }
   if (log?.is_public && !log?.node_id) return true
   const msg = String(log?.message ?? '')
-  return msg.startsWith('[SYSTEM]') || msg.startsWith('[ASTA GLOBALE]') || msg.startsWith('[NET]')
+  return (
+    msg.startsWith('[SYSTEM]') ||
+    msg.startsWith('[ASTA GLOBALE]') ||
+    msg.startsWith('[NET]') ||
+    msg.startsWith('[ALLARME INTRUSIONE]')
+  )
 }
 
 function formatDisplayMessage(log, viewerId) {

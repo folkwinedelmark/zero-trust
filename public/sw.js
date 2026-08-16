@@ -9,31 +9,27 @@ self.addEventListener('activate', (event) => {
 })
 
 self.addEventListener('push', (event) => {
-  let payload = {
-    title: 'Zero Trust',
-    body: 'Nuova notifica di sistema.',
-  }
-  try {
-    if (event.data) {
-      const parsed = event.data.json()
-      payload = { ...payload, ...parsed }
-    }
-  } catch {
-    try {
-      const text = event.data?.text()
-      if (text) payload.body = text
-    } catch {
-      /* ignore */
-    }
-  }
+  if (!event.data) return
 
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      icon: '/logo.png',
-      badge: '/favicon.png',
-      data: payload,
-    }),
+    (async () => {
+      let data = {}
+      try {
+        data = event.data.json()
+      } catch {
+        data = { body: event.data.text() }
+      }
+      const options = {
+        body: data.body || 'Nuova attività rilevata',
+        icon: '/logo.png',
+        badge: '/favicon.png',
+        data,
+      }
+      await self.registration.showNotification(
+        data.title || 'Zero Trust',
+        options,
+      )
+    })(),
   )
 })
 

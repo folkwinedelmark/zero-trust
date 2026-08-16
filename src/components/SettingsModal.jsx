@@ -7,6 +7,10 @@ import {
   parseSettings,
   requestPushPermission,
 } from '../lib/settings'
+import {
+  disablePushSubscription,
+  enablePushSubscription,
+} from '../lib/push'
 
 const VOLUME_SAVE_MS = 400
 
@@ -53,14 +57,30 @@ export default function SettingsModal({ open, onClose }) {
   async function togglePush() {
     playClick()
     const next = !settings.push_notifications
-    if (next) {
-      const permission = await requestPushPermission()
-      if (!permission.ok) {
-        setError(permission.error)
-        return
+    setBusy(true)
+    setError(null)
+    try {
+      if (next) {
+        const permission = await requestPushPermission()
+        if (!permission.ok) {
+          setError(permission.error)
+          return
+        }
+        const { error: subError } = await enablePushSubscription()
+        if (subError) {
+          setError(subError.message ?? 'Iscrizione push fallita')
+          return
+        }
+      } else {
+        const { error: unsubError } = await disablePushSubscription()
+        if (unsubError) {
+          setError(unsubError.message ?? 'Disiscrizione push fallita')
+        }
       }
+      await patchSetting('push_notifications', next)
+    } finally {
+      setBusy(false)
     }
-    await patchSetting('push_notifications', next)
   }
 
   function toggleUiSound() {
