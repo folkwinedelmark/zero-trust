@@ -110,7 +110,7 @@ export default function DebugPanel() {
               }}
               className="w-full border border-amber-400/80 bg-amber-500/20 px-2 py-2 text-left text-[11px] uppercase tracking-wider text-amber-200 shadow-[0_0_14px_rgba(245,158,11,0.35)] hover:border-amber-300 hover:bg-amber-500/30 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Simula Fine Partita (End Game)
+              Simula Fine Partita (Chiudi ciclo)
             </button>
             <button
               type="button"

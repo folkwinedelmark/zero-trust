@@ -8,6 +8,10 @@ import { isNodeDdosActive } from '../lib/hardware'
 import { factionLogo, serverOwnerPresentation } from '../lib/constants'
 import GigObjectiveBanner from './GigObjectiveBanner'
 import LogTerminal from './LogTerminal'
+import {
+  formatCycleCountdown,
+  resolveMatchEndMs,
+} from '../lib/matchSchedule'
 
 export default function Dashboard({
   servers,
@@ -31,6 +35,9 @@ export default function Dashboard({
   onAbortTravel = null,
   executorGigs = [],
   scoreByFaction = { security: 0, hacktivist: 0 },
+  matchEndTime = null,
+  startedAt = null,
+  matchDurationDays = null,
 }) {
   const { playClick } = useAudio()
   const [now, setNow] = useState(Date.now())
@@ -162,6 +169,11 @@ export default function Dashboard({
       <div className="relative mb-6 overflow-hidden rounded-xl border border-slate-800 bg-[url('/city-banner.png')] bg-cover bg-center">
         <div className="absolute inset-0 z-0 bg-slate-950/60" />
         <div className="relative z-10 p-6 sm:p-8">
+          <MatchEndCountdown
+            matchEndTime={matchEndTime}
+            startedAt={startedAt}
+            matchDurationDays={matchDurationDays}
+          />
           <WarStatusBar
             corpVp={scoreByFaction.security ?? 0}
             rebelVp={scoreByFaction.hacktivist ?? 0}
@@ -384,6 +396,39 @@ function PanopticonSlots({ slots, now }) {
         )
       })}
     </ul>
+  )
+}
+
+function MatchEndCountdown({ matchEndTime, startedAt, matchDurationDays }) {
+  const [now, setNow] = useState(Date.now())
+  const endMs = resolveMatchEndMs({
+    matchEndTime,
+    startedAt,
+    matchDurationDays,
+  })
+
+  useEffect(() => {
+    if (endMs == null) return undefined
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [endMs])
+
+  if (endMs == null) return null
+
+  const remaining = endMs - now
+  const expired = remaining <= 0
+
+  return (
+    <div className="mb-6 border border-red-500/50 bg-red-500/10 p-3 text-center font-mono text-xl font-bold tracking-widest text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)] md:text-2xl rounded-lg">
+      <p className="mb-1 font-sans text-[10px] font-medium uppercase tracking-[0.35em] text-red-400/80">
+        Fine ciclo
+      </p>
+      {expired ? (
+        <p>[ CICLO CONCLUSO / CALCOLO IN CORSO ]</p>
+      ) : (
+        <p>{formatCycleCountdown(remaining)}</p>
+      )}
+    </div>
   )
 }
 

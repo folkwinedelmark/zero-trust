@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { WORLD_REFRESH_EVENT } from '../lib/constants'
 import { supabase } from '../lib/supabase'
 import {
   auctionSweep,
@@ -86,6 +87,15 @@ export function useAuctions() {
       supabase.removeChannel(channel)
     }
   }, [load, userId])
+
+  useEffect(() => {
+    const onRefresh = () => {
+      setAuctions([])
+      void load()
+    }
+    window.addEventListener(WORLD_REFRESH_EVENT, onRefresh)
+    return () => window.removeEventListener(WORLD_REFRESH_EVENT, onRefresh)
+  }, [load])
 
   const openBoard = useMemo(
     () => auctions.filter((a) => a.status === 'OPEN'),

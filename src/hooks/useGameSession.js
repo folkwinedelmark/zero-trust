@@ -4,21 +4,23 @@ import { supabase } from '../lib/supabase'
 import {
   MATCH_SETTINGS_EVENT,
   WORLD_REFRESH_EVENT,
-  requestWorldRefresh,
 } from '../lib/constants'
 import {
   activateScheduledMatch,
+  applyMatchConcluded,
+  applyMatchResetToLobby,
   claimLobbyHost,
   concludeMatch,
   fetchGameSettings,
   fetchLobbyPlayers,
   markBriefingSeen,
-  resetLobby,
+  resetTotal,
   scheduleGame,
   selectClass,
   startGame,
   toggleReady,
 } from '../lib/gameSession'
+import { resolveMatchEndMs } from '../lib/matchSchedule'
 
 const DEFAULT_STATE = 'ACTIVE'
 
@@ -32,6 +34,7 @@ export function useGameSession() {
   const [startedAt, setStartedAt] = useState(null)
   const [scheduledStartTime, setScheduledStartTime] = useState(null)
   const [matchDurationDays, setMatchDurationDays] = useState(null)
+  const [matchEndTime, setMatchEndTime] = useState(null)
   const [winningFaction, setWinningFaction] = useState(null)
   const [winningMercenaryId, setWinningMercenaryId] = useState(null)
   const [matchResult, setMatchResult] = useState(null)
@@ -50,6 +53,7 @@ export function useGameSession() {
     setStartedAt(row.started_at ?? null)
     setScheduledStartTime(row.scheduled_start_time ?? null)
     setMatchDurationDays(row.match_duration_days ?? null)
+    setMatchEndTime(row.match_end_time ?? null)
     setWinningFaction(row.winning_faction ?? null)
     setWinningMercenaryId(row.winning_mercenary_id ?? null)
     setMatchResult(row.match_result ?? null)
@@ -171,11 +175,11 @@ export function useGameSession() {
   )
 
   const start = useCallback(
-    async (allowSolo = false) => {
+    async (allowSolo = false, endTime = null) => {
       setBusy(true)
       setError(null)
       try {
-        const { data, error: rpcError } = await startGame(allowSolo)
+        const { data, error: rpcError } = await startGame(allowSolo, endTime)
         if (rpcError) throw rpcError
         await refreshProfile()
         await load()
@@ -191,7 +195,7 @@ export function useGameSession() {
   )
 
   const schedule = useCallback(
-    async ({ startTime, durationDays = 7, allowSolo = false }) => {
+    async ({ startTime, durationDays = 7, allowSolo = false, endTime = null }) => {
       setBusy(true)
       setError(null)
       try {
@@ -201,6 +205,7 @@ export function useGameSession() {
           startTime: iso,
           durationDays,
           allowSolo,
+          endTime,
         })
         if (rpcError) throw rpcError
         await refreshProfile()
@@ -269,6 +274,8 @@ export function useGameSession() {
       try {
         const { data, error: rpcError } = await concludeMatch()
         if (rpcError) throw rpcError
+        localOverrideRef.current = null
+        if (data) applyMatchConcluded(data)
         await refreshProfile()
         await load()
         return { data, error: null }
@@ -287,15 +294,15 @@ export function useGameSession() {
     setBusy(true)
     setError(null)
     try {
-      const { data, error: rpcError } = await resetLobby()
+      const { data, error: rpcError } = await resetTotal()
       if (rpcError) throw rpcError
       localOverrideRef.current = null
+      applyMatchResetToLobby()
       await refreshProfile()
       await load()
-      requestWorldRefresh()
       return { data, error: null }
     } catch (err) {
-      setError(err.message ?? 'Reset lobby fallito')
+      setError(err.message ?? 'Reset totale fallito')
       return { error: err }
     } finally {
       setBusy(false)
@@ -335,21 +342,20 @@ export function useGameSession() {
   }, [activate, gameState, scheduledStartTime])
 
   useEffect(() => {
-    if (gameState !== 'ACTIVE' || !startedAt || !matchDurationDays) {
-      return undefined
-    }
-    const days = Number(matchDurationDays)
-    if (!Number.isFinite(days) || days <= 0) return undefined
+    if (gameState !== 'ACTIVE') return undefined
+    const endMs = resolveMatchEndMs({
+      matchEndTime,
+      startedAt,
+      matchDurationDays,
+    })
+    if (endMs == null) return undefined
     const tick = () => {
-      const start = new Date(startedAt).getTime()
-      if (Number.isFinite(start) && Date.now() >= start + days * 86_400_000) {
-        void conclude({ silent: true })
-      }
+      if (Date.now() >= endMs) void conclude({ silent: true })
     }
     tick()
-    const id = setInterval(tick, 5000)
+    const id = setInterval(tick, 1000)
     return () => clearInterval(id)
-  }, [conclude, gameState, matchDurationDays, startedAt])
+  }, [conclude, gameState, matchDurationDays, matchEndTime, startedAt])
 
   useEffect(() => {
     if (loading) return undefined
@@ -379,6 +385,7 @@ export function useGameSession() {
     startedAt,
     scheduledStartTime,
     matchDurationDays,
+    matchEndTime,
     winningFaction,
     winningMercenaryId,
     matchResult,

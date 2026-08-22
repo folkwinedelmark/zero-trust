@@ -82,7 +82,7 @@ export const GAME_STATES = {
   COMPLETED: 'COMPLETED',
 }
 
-export const GAME_VERSION = 'v.0.1 Alpha'
+export const GAME_VERSION = 'v.0.2 Alpha'
 
 export const FACTIONS = [
   {

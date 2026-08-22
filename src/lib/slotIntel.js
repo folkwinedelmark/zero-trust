@@ -12,6 +12,8 @@ const HIDDEN_HANDLES = new Set([
   'Segnale perso',
   'ENCRYPTED ID',
   'ID CRIPTATO',
+  '[ ENCRYPTED ID ]',
+  '[ENCRYPTED ID]',
   '',
 ])
 

@@ -392,10 +392,7 @@ function formatDisplayMessage(log, viewerId) {
     const revealed =
       log.meta?.revealed || extractTraceTarget(log.message) || 'Unknown'
     const slot =
-      log.meta?.target_slot ||
-      log.meta?.compromised_slot ||
-      log.meta?.slot ||
-      log.meta?.actor_slot
+      log.meta?.target_slot || log.meta?.compromised_slot || log.meta?.slot || null
     const targetAction =
       log.meta?.target_action || log.meta?.compromised_action || null
     return finish(
@@ -561,10 +558,8 @@ export function msgTraceDone({
     return `Fallito: Trace (segnale perso) — ${where}`
   }
   const who = revealed || 'Unknown'
-  const op = targetAction ? actionLabel(targetAction) : null
-  return op
-    ? `Successo: Trace completato su ${who} — azione: ${op} — ${where}`
-    : `Successo: Trace completato su ${who} — ${where}`
+  const op = targetAction ? actionLabel(targetAction) : 'UNKNOWN'
+  return `Trace completato con successo. Bersaglio identificato: ${who}. Azione in corso: ${op}.`
 }
 
 export function msgTraceReceived({
@@ -576,8 +571,11 @@ export function msgTraceReceived({
   const where = spatialRef(nodeName, targetSlot)
   const opBit = targetAction ? ` mentre eseguivi ${actionLabel(targetAction)}` : ''
   const stealth =
-    revealed === 'ID CRIPTATO' || revealed === 'ENCRYPTED ID'
-      ? ' — Stealth Protocol (ENCRYPTED ID)'
+    revealed === 'ID CRIPTATO' ||
+    revealed === 'ENCRYPTED ID' ||
+    revealed === '[ ENCRYPTED ID ]' ||
+    revealed === '[ENCRYPTED ID]'
+      ? ' — Stealth: [ ENCRYPTED ID ]'
       : ' — identità esposta'
   return `Subito Trace${opBit} — ${where}${stealth}`
 }
@@ -585,6 +583,7 @@ export function msgTraceReceived({
 function extractTraceTarget(message) {
   const text = String(message ?? '')
   const match =
+    text.match(/Bersaglio identificato:\s*(.+?)\.(?:\s|$)/i) ||
     text.match(/Trace completato su\s+(.+?)(?:\s+—|$)/i) ||
     text.match(/Trace completato:\s*(.+?)(?:\s+—|$)/i) ||
     text.match(/Trace riuscito:\s*(.+?)(?:\s+—|$)/i)

@@ -1,6 +1,5 @@
 import { Crown, Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { useDebug } from '../debug/DebugContext'
 import DebugPanel from '../debug/DebugPanel'
 import {
   factionBarClass,
@@ -9,6 +8,7 @@ import {
   factionTitle,
   isMercFaction,
 } from '../lib/constants'
+import { CONFIRM_RESET_TOTAL } from '../lib/gameSession'
 
 const FACTION_END = {
   security: {
@@ -55,7 +55,6 @@ function podiumTone(rank) {
 
 export default function EndGameModal({ session }) {
   const { profile } = useAuth()
-  const debug = useDebug()
   const result = session.matchResult ?? {}
   const faction = factionById(profile?.faction)
   const merc = isMercFaction(profile?.faction)
@@ -64,7 +63,7 @@ export default function EndGameModal({ session }) {
   const winner = result.winning_faction ?? session.winningFaction ?? null
   const draw = Boolean(result.draw) || (!winner && corpScore === rebelScore)
   const won = Boolean(winner && profile?.faction === winner)
-  const canReset = session.isHost || debug.enabled
+  const isHost = Boolean(session.isHost)
   const mercs = Array.isArray(result.mercs) ? result.mercs : []
   const podium = mercs.slice(0, 3)
   const myMerc = mercs.find((row) => row.id === profile?.id) ?? null
@@ -74,6 +73,8 @@ export default function EndGameModal({ session }) {
     profile?.id === (result.winning_mercenary_id ?? session.winningMercenaryId)
 
   async function restart() {
+    if (!isHost) return
+    if (!window.confirm(CONFIRM_RESET_TOTAL)) return
     await session.reset()
   }
 
@@ -130,17 +131,18 @@ export default function EndGameModal({ session }) {
           )}
 
           <div className="mt-8">
-            <button
-              type="button"
-              disabled={session.busy || !canReset}
-              onClick={() => void restart()}
-              className="flex w-full items-center justify-center gap-2 bg-amber-500 px-6 py-3 text-sm font-medium uppercase tracking-[0.18em] text-zinc-950 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {session.busy && <Loader2 className="h-4 w-4 animate-spin" />}
-              Riavvia protocollo (torna alla lobby)
-            </button>
-            {!canReset && (
-              <p className="mt-2 text-center text-[11px] uppercase tracking-wider text-zinc-500">
+            {isHost ? (
+              <button
+                type="button"
+                disabled={session.busy}
+                onClick={() => void restart()}
+                className="flex w-full items-center justify-center gap-2 bg-amber-500 px-6 py-3 text-sm font-medium uppercase tracking-[0.18em] text-zinc-950 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {session.busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                Riavvia protocollo (torna alla lobby)
+              </button>
+            ) : (
+              <p className="text-center text-[11px] uppercase tracking-wider text-zinc-500">
                 In attesa dell’host per il reset
               </p>
             )}

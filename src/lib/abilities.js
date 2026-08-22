@@ -294,7 +294,12 @@ export function isEffectActive(iso, now = Date.now()) {
 
 export function isEncryptedHandle(name) {
   const v = String(name ?? '').trim()
-  return v === 'ENCRYPTED ID' || v === 'ID CRIPTATO'
+  return (
+    v === 'ENCRYPTED ID' ||
+    v === 'ID CRIPTATO' ||
+    v === '[ ENCRYPTED ID ]' ||
+    v === '[ENCRYPTED ID]'
+  )
 }
 
 export function isBackdoorSlot(slot) {

@@ -75,9 +75,17 @@ export default function ScheduledWaitingView({ session }) {
             <span className="text-cyan-200">
               {formatScheduleStamp(session.scheduledStartTime)}
             </span>
-            {session.matchDurationDays
-              ? ` · ciclo ${session.matchDurationDays} giorni`
-              : null}
+            {session.matchEndTime ? (
+              <>
+                {' '}
+                · fine ciclo{' '}
+                <span className="text-red-300">
+                  {formatScheduleStamp(session.matchEndTime)}
+                </span>
+              </>
+            ) : session.matchDurationDays ? (
+              ` · ciclo ${session.matchDurationDays} giorni`
+            ) : null}
             .
           </p>
         </div>

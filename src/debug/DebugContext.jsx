@@ -15,8 +15,11 @@ import {
   resetLobby as resetLobbyRpc,
   resetTotal as resetTotalRpc,
   activateScheduledMatch,
+  applyMatchConcluded,
+  applyMatchResetToLobby,
   concludeMatch,
-  matchSettingsFromResult,
+  CONFIRM_CLOSE_CYCLE,
+  CONFIRM_RESET_TOTAL,
   snapshotMatchResult,
 } from '../lib/gameSession'
 import { clearIntelArchive as clearIntelArchiveRpc } from '../lib/intelArchive'
@@ -240,11 +243,7 @@ export function DebugProvider({ children }) {
   }, [refreshProfile])
 
   const concludeMatchSim = useCallback(async () => {
-    if (
-      !window.confirm(
-        'Simulare la fine partita? Verranno calcolati i vincitori e tutti i client passeranno alla schermata di fine ciclo.',
-      )
-    ) {
+    if (!window.confirm(CONFIRM_CLOSE_CYCLE)) {
       return { cancelled: true }
     }
     setBusy(true)
@@ -252,16 +251,13 @@ export function DebugProvider({ children }) {
     try {
       const { data, error } = await concludeMatch()
       if (error) throw error
-      const row = matchSettingsFromResult(data)
-      pushMatchSettings(row)
+      applyMatchConcluded(data)
       await refreshProfile()
-      requestWorldRefresh()
       setMessage('Ciclo chiuso → COMPLETED')
       return { error: null, data }
     } catch (err) {
       const snapshot = await snapshotMatchResult()
-      const row = matchSettingsFromResult(snapshot, { local: true })
-      pushMatchSettings(row, { local: true })
+      applyMatchConcluded(snapshot, { local: true })
       const msg =
         err.message ??
         'Fine partita fallita — preview locale della schermata End Game.'
@@ -309,11 +305,7 @@ export function DebugProvider({ children }) {
   }, [])
 
   const resetTotal = useCallback(async () => {
-    if (
-      !window.confirm(
-        'ATTENZIONE: Questo cancellerà tutti i log, i server e i punteggi per iniziare una nuova partita da zero. Continuare?',
-      )
-    ) {
+    if (!window.confirm(CONFIRM_RESET_TOTAL)) {
       return
     }
     setBusy(true)
@@ -321,9 +313,8 @@ export function DebugProvider({ children }) {
     try {
       const { error } = await resetTotalRpc()
       if (error) throw error
-      pushMatchSettings({ game_state: 'LOBBY' })
+      applyMatchResetToLobby()
       await refreshProfile()
-      requestWorldRefresh()
       setMessage('Reset totale · nuova partita (LOBBY)')
     } catch (err) {
       setMessage(err.message ?? 'Reset totale fallito')

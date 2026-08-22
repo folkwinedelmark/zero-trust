@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { WORLD_REFRESH_EVENT } from '../lib/constants'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { fetchDirectoryPlayers, fetchOwnPlayerNotes, upsertPlayerNote } from '../lib/playerDirectory'
@@ -74,6 +75,16 @@ export function usePlayerDirectory(open) {
     const id = setInterval(() => setPresenceNow(Date.now()), 15_000)
     return () => clearInterval(id)
   }, [open])
+
+  useEffect(() => {
+    const onRefresh = () => {
+      setPlayers([])
+      setNotes({})
+      if (open) void load()
+    }
+    window.addEventListener(WORLD_REFRESH_EVENT, onRefresh)
+    return () => window.removeEventListener(WORLD_REFRESH_EVENT, onRefresh)
+  }, [open, load])
 
   const saveNote = useCallback(
     async (targetId, { deducedFaction, customNote }) => {

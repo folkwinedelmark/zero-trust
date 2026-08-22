@@ -53,6 +53,7 @@ export function useIntelReports(enabled) {
 
   useEffect(() => {
     const onRefresh = () => {
+      setReports([])
       void load()
     }
     window.addEventListener(WORLD_REFRESH_EVENT, onRefresh)

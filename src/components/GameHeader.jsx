@@ -33,6 +33,7 @@ import {
   roleIcon,
   roleLabel,
 } from '../lib/constants'
+import { CONFIRM_CLOSE_CYCLE } from '../lib/gameSession'
 import { actionProgress, formatRemaining } from '../lib/actions'
 import { getActionIcon } from '../lib/actionIcons'
 import { parseEquippedHardware, stealthRemainingMs } from '../lib/hardware'
@@ -79,6 +80,15 @@ export default function GameHeader({
   const [now, setNow] = useState(Date.now())
   const [aborting, setAborting] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  const showCloseCycle = Boolean(isHost && onConcludeMatch)
+
+  function requestCloseCycle() {
+    if (!showCloseCycle || concluding) return
+    if (!window.confirm(CONFIRM_CLOSE_CYCLE)) return
+    playClick()
+    void onConcludeMatch()
+  }
 
   useEffect(() => {
     const stealthed = stealthRemainingMs(profile) > 0
@@ -310,24 +320,14 @@ export default function GameHeader({
                 onOpenRulebook?.()
               }}
             />
-            {isHost && onConcludeMatch && (
+            {showCloseCycle && (
               <NavChip
                 icon={Flag}
                 label="Chiudi ciclo"
                 title="Concludi la partita e vai alla schermata di fine ciclo"
                 tone="red"
                 disabled={concluding}
-                onClick={() => {
-                  if (
-                    !window.confirm(
-                      'Chiudere il ciclo di rete? Verranno calcolati i vincitori e tutti passeranno alla schermata di fine partita.',
-                    )
-                  ) {
-                    return
-                  }
-                  playClick()
-                  void onConcludeMatch()
-                }}
+                onClick={requestCloseCycle}
               />
             )}
             <DebugPanel />
@@ -335,24 +335,14 @@ export default function GameHeader({
 
           <div className="no-scrollbar flex min-w-0 items-center gap-1.5 overflow-x-auto whitespace-nowrap md:hidden">
             <HeaderStats profile={profile} />
-            {isHost && onConcludeMatch && (
+            {showCloseCycle && (
               <NavChip
                 icon={Flag}
                 label="Chiudi ciclo"
                 title="Concludi la partita"
                 tone="red"
                 disabled={concluding}
-                onClick={() => {
-                  if (
-                    !window.confirm(
-                      'Chiudere il ciclo di rete? Verranno calcolati i vincitori e tutti passeranno alla schermata di fine partita.',
-                    )
-                  ) {
-                    return
-                  }
-                  playClick()
-                  void onConcludeMatch()
-                }}
+                onClick={requestCloseCycle}
               />
             )}
           </div>

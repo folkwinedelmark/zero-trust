@@ -6,6 +6,7 @@ import DebugPanel from '../debug/DebugPanel'
 import RulebookButton from './RulebookButton'
 import { factionBarClass, factionBarTag } from '../lib/constants'
 import {
+  defaultMatchEnd,
   defaultScheduledStart,
   fromDatetimeLocalValue,
   toDatetimeLocalValue,
@@ -23,6 +24,7 @@ export default function LobbyView({ session }) {
     setReady,
     start,
     schedule,
+    setError,
   } = session
 
   const ready = Boolean(profile?.is_ready)
@@ -32,16 +34,47 @@ export default function LobbyView({ session }) {
   const [startLocal, setStartLocal] = useState(() =>
     toDatetimeLocalValue(defaultScheduledStart()),
   )
-  const [durationDays, setDurationDays] = useState(7)
+  const [endLocal, setEndLocal] = useState(() =>
+    toDatetimeLocalValue(defaultMatchEnd()),
+  )
 
   const minLocal = useMemo(() => toDatetimeLocalValue(new Date()), [])
+  const endMinLocal = useMemo(() => {
+    const start = fromDatetimeLocalValue(startLocal)
+    const now = new Date()
+    if (start && start.getTime() > now.getTime()) {
+      return toDatetimeLocalValue(start)
+    }
+    return minLocal
+  }, [startLocal, minLocal])
+
+  function durationDaysFromRange(start, end) {
+    const ms = end.getTime() - start.getTime()
+    if (!Number.isFinite(ms) || ms <= 0) return 7
+    return Math.max(1, Math.min(60, Math.ceil(ms / 86_400_000)))
+  }
+
+  async function handleStart() {
+    const end = fromDatetimeLocalValue(endLocal)
+    if (!end || end.getTime() <= Date.now()) {
+      setError?.('Imposta una data di fine partita nel futuro')
+      return
+    }
+    await start(Boolean(debug.enabled), end)
+  }
 
   async function handleSchedule() {
     const when = fromDatetimeLocalValue(startLocal)
-    if (!when) return
+    const end = fromDatetimeLocalValue(endLocal)
+    if (!when || !end) return
+    if (end.getTime() <= when.getTime()) {
+      setError?.('La data di fine deve essere successiva all’inizio')
+      return
+    }
     await schedule({
       startTime: when,
-      durationDays: Number(durationDays) || 7,
+      durationDays: durationDaysFromRange(when, end),
+      endTime: end,
       allowSolo: Boolean(debug.enabled),
     })
   }
@@ -184,13 +217,12 @@ export default function LobbyView({ session }) {
               />
             </label>
             <label className="block text-left text-[10px] uppercase tracking-wider text-zinc-500">
-              Durata (giorni)
+              Data di Fine Partita
               <input
-                type="number"
-                min={1}
-                max={60}
-                value={durationDays}
-                onChange={(e) => setDurationDays(e.target.value)}
+                type="datetime-local"
+                min={endMinLocal}
+                value={endLocal}
+                onChange={(e) => setEndLocal(e.target.value)}
                 className="mt-1.5 w-full border border-zinc-600 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-cyan-500/70"
               />
             </label>
@@ -198,8 +230,8 @@ export default function LobbyView({ session }) {
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <button
               type="button"
-              disabled={startDisabled}
-              onClick={() => void start(Boolean(debug.enabled))}
+              disabled={startDisabled || !endLocal}
+              onClick={() => void handleStart()}
               className="inline-flex items-center justify-center gap-2 border border-zinc-600 px-5 py-2.5 text-sm font-medium uppercase tracking-wider text-zinc-300 transition hover:border-zinc-400 disabled:cursor-not-allowed disabled:opacity-60"
               title={
                 canStart

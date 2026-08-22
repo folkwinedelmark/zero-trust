@@ -1,11 +1,17 @@
 import { supabase } from './supabase'
-import { GAME_STATES } from './constants'
+import { GAME_STATES, pushMatchSettings, requestWorldRefresh } from './constants'
+
+export const CONFIRM_CLOSE_CYCLE =
+  'Chiudere il ciclo di rete? Verranno calcolati i vincitori e tutti passeranno alla schermata di fine partita.'
+
+export const CONFIRM_RESET_TOTAL =
+  'ATTENZIONE: Questo cancellerà tutti i log, i server e i punteggi per iniziare una nuova partita da zero. Continuare?'
 
 export async function fetchGameSettings() {
   const full = await supabase
     .from('game_settings')
     .select(
-      'id, game_state, started_at, updated_at, scheduled_start_time, match_duration_days, winning_faction, winning_mercenary_id, match_result',
+      'id, game_state, started_at, updated_at, scheduled_start_time, match_duration_days, match_end_time, winning_faction, winning_mercenary_id, match_result',
     )
     .eq('id', 1)
     .maybeSingle()
@@ -56,20 +62,31 @@ export async function claimLobbyHost() {
   return supabase.rpc('claim_lobby_host')
 }
 
-export async function startGame(allowSolo = false) {
-  return supabase.rpc('start_game', { p_allow_solo: allowSolo })
+export async function startGame(allowSolo = false, endTime = null) {
+  const params = { p_allow_solo: allowSolo }
+  if (endTime) {
+    params.p_end_time =
+      endTime instanceof Date ? endTime.toISOString() : endTime
+  }
+  return supabase.rpc('start_game', params)
 }
 
 export async function scheduleGame({
   startTime,
   durationDays = 7,
   allowSolo = false,
+  endTime = null,
 }) {
-  return supabase.rpc('schedule_game', {
+  const params = {
     p_start_time: startTime,
     p_duration_days: durationDays,
     p_allow_solo: allowSolo,
-  })
+  }
+  if (endTime) {
+    params.p_end_time =
+      endTime instanceof Date ? endTime.toISOString() : endTime
+  }
+  return supabase.rpc('schedule_game', params)
 }
 
 export async function activateScheduledMatch(force = false) {
@@ -156,6 +173,18 @@ export function matchSettingsFromResult(result, { local = false } = {}) {
     winning_mercenary_id: result?.winning_mercenary_id ?? null,
     match_result: result ?? { ok: true, local },
   }
+}
+
+export function applyMatchConcluded(result, { local = false } = {}) {
+  const row = matchSettingsFromResult(result, { local })
+  pushMatchSettings(row, { local })
+  requestWorldRefresh()
+  return row
+}
+
+export function applyMatchResetToLobby() {
+  pushMatchSettings({ game_state: GAME_STATES.PENDING_LOBBY })
+  requestWorldRefresh()
 }
 
 export async function resetLobby() {

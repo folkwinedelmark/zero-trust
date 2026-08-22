@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react'
 import { supabase } from '../lib/supabase'
-import { PA_MAX, STARTING_CREDS } from '../lib/constants'
+import { PA_MAX, STARTING_CREDS, WORLD_REFRESH_EVENT } from '../lib/constants'
 import { DEFAULT_SETTINGS, parseSettings } from '../lib/settings'
 import { usePresenceHeartbeat } from '../hooks/usePresenceHeartbeat'
 import { clearPresence } from '../lib/presence'
@@ -110,6 +110,16 @@ export function AuthProvider({ children }) {
       supabase.removeChannel(channel)
     }
   }, [session?.user?.id])
+
+  useEffect(() => {
+    const userId = session?.user?.id
+    if (!userId) return undefined
+    const onRefresh = () => {
+      void fetchProfile(userId)
+    }
+    window.addEventListener(WORLD_REFRESH_EVENT, onRefresh)
+    return () => window.removeEventListener(WORLD_REFRESH_EVENT, onRefresh)
+  }, [session?.user?.id, fetchProfile])
 
   const signUp = useCallback(async (email, password) => {
     setError(null)

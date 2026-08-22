@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { WORLD_REFRESH_EVENT } from '../lib/constants'
 import { supabase } from '../lib/supabase'
 import { executorGigs } from '../lib/gigs'
 import { fetchGigs, gigAutoResolve, gigSweepExpired } from '../lib/gigsApi'
@@ -63,6 +64,15 @@ export function useGigs() {
       supabase.removeChannel(channel)
     }
   }, [load, userId])
+
+  useEffect(() => {
+    const onRefresh = () => {
+      setGigs([])
+      void load()
+    }
+    window.addEventListener(WORLD_REFRESH_EVENT, onRefresh)
+    return () => window.removeEventListener(WORLD_REFRESH_EVENT, onRefresh)
+  }, [load])
 
   const openBoard = useMemo(
     () => gigs.filter((g) => g.status === 'OPEN' && g.creator_id !== userId),

@@ -30,6 +30,35 @@ export function fromDatetimeLocalValue(value) {
   return Number.isFinite(d.getTime()) ? d : null
 }
 
+export function formatCycleCountdown(ms) {
+  const { days, hours, minutes, seconds } = remainingParts(ms)
+  return `${days}d ${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`
+}
+
+export function resolveMatchEndMs({
+  matchEndTime,
+  startedAt,
+  matchDurationDays,
+} = {}) {
+  if (matchEndTime) {
+    const t = new Date(matchEndTime).getTime()
+    if (Number.isFinite(t)) return t
+  }
+  const start = startedAt ? new Date(startedAt).getTime() : NaN
+  const days = Number(matchDurationDays)
+  if (Number.isFinite(start) && Number.isFinite(days) && days > 0) {
+    return start + days * 86_400_000
+  }
+  return null
+}
+
+export function defaultMatchEnd() {
+  const d = new Date()
+  d.setDate(d.getDate() + 7)
+  d.setSeconds(0, 0)
+  return d
+}
+
 /** Prossimo lunedì 08:00 locale. Se è lunedì prima delle 08:00, usa oggi. */
 export function defaultScheduledStart() {
   const d = new Date()

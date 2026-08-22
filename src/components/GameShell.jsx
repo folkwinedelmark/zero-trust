@@ -266,6 +266,9 @@ export default function GameShell({ session }) {
             onAbortTravel={travel.cancelTravel}
             executorGigs={gigs.myExecuting}
             scoreByFaction={map.scoreByFaction}
+            matchEndTime={session?.matchEndTime}
+            startedAt={session?.startedAt}
+            matchDurationDays={session?.matchDurationDays}
           />
         )}
       </main>
