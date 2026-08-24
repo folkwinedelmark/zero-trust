@@ -9,6 +9,7 @@ import LoadoutPanel from './LoadoutPanel'
 import { useRealtimeMap } from '../hooks/useRealtimeMap'
 import { useActionResolver } from '../hooks/useActionResolver'
 import { useIncomingThreats } from '../hooks/useIncomingThreats'
+import { useExpiredActionSweep } from '../hooks/useExpiredActionSweep'
 import { useSystemLogs } from '../hooks/useSystemLogs'
 import { useGigs } from '../hooks/useGigs'
 import { useAuth } from '../context/AuthContext'
@@ -71,6 +72,8 @@ export default function GameShell({ session }) {
     activeSlot,
     slots: map.slots,
   })
+
+  useExpiredActionSweep(map.slots)
 
   const travel = useTravel({
     profile,

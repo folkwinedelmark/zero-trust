@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
   Loader2,
@@ -34,6 +34,7 @@ import {
 } from '../lib/abilities'
 import { useAbilities } from '../hooks/useAbilities'
 import { occupySlot, slotCollisionMessage } from '../lib/occupySlot'
+import { pingResolveExpiredActions } from '../lib/resolveExpired'
 import {
   BACKDOOR_PA_SURCHARGE,
   EXTRACT_ICE_MAX,
@@ -168,6 +169,7 @@ export default function NodeView({
   const [now, setNow] = useState(Date.now())
   const [confirmLeave, setConfirmLeave] = useState(false)
   const [abilityConfirm, setAbilityConfirm] = useState(null)
+  const observerSweepRef = useRef(new Set())
 
   function setActionError(message) {
     if (message) {
@@ -248,11 +250,15 @@ export default function NodeView({
       (isSysadmin && (selectedFreeSlot || selectedEnemySlot)) ||
       (isAnalyst && selectedEnemySlot) ||
       (isGhost && selectedFreeSlot)
+    const hasSlotTimers = slots.some(
+      (s) => (s.user_id || s.is_decoy) && s.end_time && s.action_type,
+    )
     if (
       !mySlotOnThisNode?.end_time &&
       !activeSlot?.end_time &&
       !hasGigTimer &&
-      !needAbilityTick
+      !needAbilityTick &&
+      !hasSlotTimers
     ) {
       return
     }
@@ -268,7 +274,21 @@ export default function NodeView({
     isGhost,
     selectedFreeSlot,
     selectedEnemySlot,
+    slots,
   ])
+
+  useEffect(() => {
+    for (const slot of slots) {
+      if (!slot.user_id || !slot.end_time || !slot.action_type) continue
+      if (!isSlotTimerExpired(slot, now)) {
+        observerSweepRef.current.delete(slot.id)
+        continue
+      }
+      if (observerSweepRef.current.has(slot.id)) continue
+      observerSweepRef.current.add(slot.id)
+      pingResolveExpiredActions()
+    }
+  }, [slots, now])
 
   if (!node) {
     if (!nodes?.length) {

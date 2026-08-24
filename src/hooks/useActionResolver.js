@@ -18,9 +18,48 @@ import {
 } from './useAudio'
 
 function alreadyResolved(error) {
-  return /già completat|non valida|Nessuna operazione attiva/i.test(
+  return /già completat|non valida|non valido|Nessuna operazione attiva/i.test(
     error?.message ?? '',
   )
+}
+
+async function hydrateTraceFromLogs(profileId, fallbackNodeName) {
+  const { data } = await supabase
+    .from('logs')
+    .select('outcome, meta, created_at, target_id')
+    .eq('actor_id', profileId)
+    .eq('event_type', 'trace')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (!data) return null
+  const at = new Date(data.created_at).getTime()
+  if (!Number.isFinite(at) || Date.now() - at > 120_000) return null
+  const meta = data.meta ?? {}
+  return {
+    revealed: meta.revealed ?? 'Unknown',
+    targetAction: meta.target_action ?? null,
+    at: Date.now(),
+    nodeName: pickNodeName(meta.node_name, fallbackNodeName),
+    outcome: data.outcome ?? 'success',
+    targetSlot: meta.target_slot ?? null,
+    targetSlotId: meta.target_slot_id ?? null,
+    targetId: data.target_id ?? null,
+  }
+}
+
+function rememberTraceIntel(profileId, result, { nodeId, occupancyStartedAt }) {
+  if (result?.outcome !== 'success' || !result.targetSlotId) return
+  rememberSlotIntel(profileId, {
+    targetSlotId: result.targetSlotId,
+    handle: result.revealed,
+    targetUserId: result.targetId ?? null,
+    nodeId,
+    nodeName: result.nodeName,
+    targetAction: result.targetAction,
+    targetSlotLabel: result.targetSlot,
+    occupancyStartedAt,
+  })
 }
 
 function pickNodeName(...candidates) {
@@ -55,8 +94,10 @@ function completionDetail(actionType, data, profile) {
 }
 
 /**
- * Completamento: il log lo scrive l'RPC (niente doppio insert client).
- * Client writeLog solo se l'RPC fallisce.
+ * Completamento ibrido: il client chiama subito l'RPC a timer 0.
+ * pg_cron (resolve_expired_actions, ~30s) copre chi è offline.
+ * FOR UPDATE sullo slot rende i due percorsi idempotenti (niente doppio ICE/₵).
+ * Il log lo scrive l'RPC; writeLog client solo se l'RPC fallisce davvero.
  */
 export function useActionResolver({
   profile,
@@ -166,31 +207,48 @@ export function useActionResolver({
           p_actor_slot_id: activeSlot.id,
           p_node_name: nodeName,
         })
+        if (error && alreadyResolved(error)) {
+          const fromLog = await hydrateTraceFromLogs(profile.id, nodeName)
+          if (fromLog) {
+            rememberTraceIntel(profile.id, fromLog, {
+              nodeId,
+              occupancyStartedAt:
+                slots.find((s) => s.id === fromLog.targetSlotId)?.start_time ??
+                null,
+            })
+            setLastTraceResult({
+              revealed: fromLog.revealed,
+              targetAction: fromLog.targetAction,
+              at: fromLog.at,
+              nodeName: fromLog.nodeName,
+              outcome: fromLog.outcome,
+              targetSlot: fromLog.targetSlot,
+            })
+          }
+          await syncAfterResolve()
+          return
+        }
         if (error) {
           console.error('[execute_trace]', error)
           await finishOwnSlot(activeSlot.id, profile.id)
-          if (!alreadyResolved(error)) {
-            await recordLog(logKey, {
-              eventType: 'trace',
-              message: msgTraceDone({
-                revealed: 'Unknown',
-                nodeName: pickNodeName(nodeName),
-                targetSlot: slotId,
-                outcome: 'failure',
-              }),
+          await recordLog(logKey, {
+            eventType: 'trace',
+            message: msgTraceDone({
+              revealed: 'Unknown',
+              nodeName: pickNodeName(nodeName),
+              targetSlot: slotId,
               outcome: 'failure',
-              nodeId,
-              actorId: profile.id,
-              meta: {
-                node_name: nodeName,
-                slot: slotId,
-                tone: 'danger',
-                error: error.message,
-              },
-            })
-          }
-        } else {
-          // execute_trace ha già scritto il log di esito
+            }),
+            outcome: 'failure',
+            nodeId,
+            actorId: profile.id,
+            meta: {
+              node_name: nodeName,
+              slot: slotId,
+              tone: 'danger',
+              error: error.message,
+            },
+          })
         }
 
         const revealed = data?.revealed ?? 'Unknown'
@@ -204,20 +262,24 @@ export function useActionResolver({
         const outcome = data?.outcome ?? (error ? 'failure' : 'success')
         const targetSlotRow = slots.find((s) => s.id === targetSlotId)
 
-        if (outcome === 'success' && targetSlotId) {
-          rememberSlotIntel(profile.id, {
-            targetSlotId,
-            handle: revealed,
-            targetUserId: data?.target_id ?? targetSlotRow?.user_id ?? null,
-            nodeId,
-            nodeName: resolvedNode,
+        rememberTraceIntel(
+          profile.id,
+          {
+            revealed,
             targetAction:
               data?.target_action ?? targetSlotRow?.action_type ?? null,
-            targetSlotLabel: targetSlot,
+            at: Date.now(),
+            nodeName: resolvedNode,
+            outcome,
+            targetSlot,
+            targetSlotId,
+            targetId: data?.target_id ?? targetSlotRow?.user_id ?? null,
+          },
+          {
+            nodeId,
             occupancyStartedAt: targetSlotRow?.start_time ?? null,
-          })
-        }
-
+          },
+        )
         setLastTraceResult({
           revealed,
           targetAction:
@@ -252,23 +314,25 @@ export function useActionResolver({
         })
 
         if (error) {
+          if (alreadyResolved(error)) {
+            await syncAfterResolve()
+            return
+          }
           console.error('[execute_kick]', error)
           await finishOwnSlot(activeSlot.id, profile.id)
-          if (!alreadyResolved(error)) {
-            await recordLog(logKey, {
-              eventType: 'kick',
-              message: `Fallito: Kick RPC error — Server: ${nodeName ?? 'Server (nome non risolto)'} [Slot ${slotId}]`,
-              outcome: 'failure',
-              nodeId,
-              actorId: profile.id,
-              meta: {
-                node_name: nodeName,
-                slot: slotId,
-                tone: 'danger',
-                error: error.message,
-              },
-            })
-          }
+          await recordLog(logKey, {
+            eventType: 'kick',
+            message: `Fallito: Kick RPC error — Server: ${nodeName ?? 'Server (nome non risolto)'} [Slot ${slotId}]`,
+            outcome: 'failure',
+            nodeId,
+            actorId: profile.id,
+            meta: {
+              node_name: nodeName,
+              slot: slotId,
+              tone: 'danger',
+              error: error.message,
+            },
+          })
           await syncAfterResolve()
           return
         }
@@ -289,12 +353,12 @@ export function useActionResolver({
         })
 
         if (error) {
-          console.error('[complete_base_action]', error)
-          await finishOwnSlot(activeSlot.id, profile.id)
           if (alreadyResolved(error)) {
             await syncAfterResolve()
             return
           }
+          console.error('[complete_base_action]', error)
+          await finishOwnSlot(activeSlot.id, profile.id)
         } else {
           // complete_base_action ha già inserito il log di successo
           await syncAfterResolve()
