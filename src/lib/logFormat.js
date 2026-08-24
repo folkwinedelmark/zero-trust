@@ -120,6 +120,7 @@ export function resolveTone(log, viewerId) {
     type === 'deep_scan_received' ||
     type === 'kick_incoming' ||
     type === 'trace_incoming' ||
+    type === 'deep_scan_incoming' ||
     (type.endsWith('_start') && iAmTarget) ||
     (type === 'trace' && iAmTarget)
   ) {
@@ -162,6 +163,7 @@ export function displayTag(log) {
 const TARGET_ONLY_EVENTS = new Set([
   'trace_incoming',
   'kick_incoming',
+  'deep_scan_incoming',
   'trace_received',
   'kick_received',
   'kill_process_received',
@@ -315,25 +317,28 @@ function formatDisplayMessage(log, viewerId) {
   }
 
   // Incoming / esposizione: solo il bersaglio, mai l'attore
-  if (type === 'trace_incoming' || type === 'kick_incoming') {
+  if (type === 'trace_incoming' || type === 'kick_incoming' || type === 'deep_scan_incoming') {
     if (!iAmTarget) {
       return finish(
         type === 'kick_incoming'
           ? `Kick avviato — ${where}`
-          : `Trace avviato — ${where}`,
+          : type === 'deep_scan_incoming'
+            ? `Deep Scan avviato — ${where}`
+            : `Trace avviato — ${where}`,
       )
     }
     if (type === 'kick_incoming') {
       return finish(
-        op
-          ? `ALLARME: Tentativo di Kick sulla tua operazione di ${op} — ${where}`
-          : `ALLARME: Tentativo di Kick sul tuo slot — ${where}`,
+        'ALLARME: Tentativo di espulsione (Kick) in corso sul tuo nodo.',
+      )
+    }
+    if (type === 'deep_scan_incoming') {
+      return finish(
+        'ATTENZIONE: Rilevata scansione profonda (Deep Scan) in corso sul tuo nodo.',
       )
     }
     return finish(
-      op
-        ? `WARNING: Trace rilevato sulla tua operazione di ${op} — ${where}`
-        : `WARNING: Trace rilevato sul tuo slot — ${where}`,
+      'ATTENZIONE: Rilevato tentativo di tracciamento (Trace) in corso sul tuo nodo.',
     )
   }
 
@@ -644,17 +649,14 @@ function extractKickTarget(message) {
   return match?.[1]?.trim() || null
 }
 
-export function msgIncoming({ kind, nodeName, targetSlot, targetAction }) {
-  const op = targetAction ? actionLabel(targetAction) : null
-  const where = spatialRef(nodeName, targetSlot)
+export function msgIncoming({ kind }) {
   if (kind === 'kick') {
-    return op
-      ? `ALLARME: Tentativo di Kick sulla tua operazione di ${op} — ${where}`
-      : `ALLARME: Tentativo di Kick sul tuo slot — ${where}`
+    return 'ALLARME: Tentativo di espulsione (Kick) in corso sul tuo nodo.'
   }
-  return op
-    ? `WARNING: Trace rilevato sulla tua operazione di ${op} — ${where}`
-    : `WARNING: Trace rilevato sul tuo slot — ${where}`
+  if (kind === 'deep_scan') {
+    return 'ATTENZIONE: Rilevata scansione profonda (Deep Scan) in corso sul tuo nodo.'
+  }
+  return 'ATTENZIONE: Rilevato tentativo di tracciamento (Trace) in corso sul tuo nodo.'
 }
 
 export function msgEscape({ kind, nodeName, slotId }) {

@@ -123,6 +123,52 @@ export function actionProgress(slot, now = Date.now()) {
   return { progress, remainingMs, done: now >= end }
 }
 
+const FOG_EARLY = 'Stato: Appena connesso'
+const FOG_MID = 'Stato: Connessione stabile'
+const FOG_LATE = 'Stato: Operazione avanzata'
+
+function occupancyElapsedPct(slot, now = Date.now()) {
+  const start = slot?.start_time ? new Date(slot.start_time).getTime() : NaN
+  if (!Number.isFinite(start)) return null
+  const end = slot?.end_time ? new Date(slot.end_time).getTime() : NaN
+  const duration =
+    Number.isFinite(end) && end > start ? end - start : TIME_ACTION
+  if (duration <= 0) return null
+  return Math.min(1, Math.max(0, (now - start) / duration))
+}
+
+/**
+ * Fog of war sulla durata dello slot nemico.
+ * Analyst: timer esatto residuo. Altri: stima a tre fasce.
+ */
+export function occupancyFogLabel(
+  slot,
+  now = Date.now(),
+  { isAnalyst = false } = {},
+) {
+  if (isAnalyst) {
+    if (slot?.start_time && slot?.end_time) {
+      const remainingMs = actionProgress(slot, now).remainingMs
+      return `${formatRemaining(remainingMs)} residui`
+    }
+    const start = slot?.start_time ? new Date(slot.start_time).getTime() : NaN
+    if (!Number.isFinite(start)) return null
+    return `connesso da ${formatRemaining(Math.max(0, now - start))}`
+  }
+
+  const elapsedPct = occupancyElapsedPct(slot, now)
+  if (elapsedPct == null) return null
+  if (elapsedPct < 0.33) return FOG_EARLY
+  if (elapsedPct <= 0.66) return FOG_MID
+  return FOG_LATE
+}
+
+/** True when the slot timer has elapsed (end_time <= now). */
+export function isSlotTimerExpired(slot, now = Date.now()) {
+  if (!slot?.end_time) return false
+  return new Date(slot.end_time).getTime() <= now
+}
+
 /** Azioni core ancorate al server: uniche cacciabili con Trace/Kick. */
 export const CORE_ACTIONS = ['attack', 'defend', 'farm', 'extract']
 

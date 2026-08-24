@@ -34,22 +34,22 @@ begin
   end;
 
   if to_regclass('public.player_notes') is not null then
-    delete from public.player_notes;
+    delete from public.player_notes where true;
     get diagnostics v_dir_notes = row_count;
   end if;
 
   if to_regclass('public.intel_reports') is not null then
-    delete from public.intel_reports;
+    delete from public.intel_reports where true;
     get diagnostics v_intel = row_count;
   end if;
 
   if to_regclass('public.gigs') is not null then
-    delete from public.gigs;
+    delete from public.gigs where true;
     get diagnostics v_gigs = row_count;
   end if;
 
   if to_regclass('public.auctions') is not null then
-    delete from public.auctions;
+    delete from public.auctions where true;
     get diagnostics v_auctions = row_count;
   end if;
 
@@ -80,7 +80,7 @@ begin
     current_node_id = null,
     pa_refreshed_at = timezone('utc', now()),
     status = 'idle'
-  where id is not null;
+  where true;
   get diagnostics v_profiles = row_count;
 
   -- core_data è in inventory; se esiste una colonna numerica, azzerala
@@ -91,7 +91,7 @@ begin
       and table_name = 'profiles'
       and column_name = 'core_data'
   ) then
-    execute 'update public.profiles set core_data = 0 where id is not null';
+    execute 'update public.profiles set core_data = 0 where true';
   end if;
 
   return jsonb_build_object(
@@ -137,11 +137,11 @@ begin
   v_actor := public.zt_require_host();
 
   if to_regclass('public.notifications') is not null then
-    delete from public.notifications;
+    delete from public.notifications where true;
     get diagnostics v_notes = row_count;
   end if;
 
-  delete from public.logs;
+  delete from public.logs where true;
   get diagnostics v_logs = row_count;
 
   v_economy := public.zt_reset_cycle_economy();
@@ -155,7 +155,7 @@ begin
   if to_regclass('public.faction_scores') is not null then
     update public.faction_scores
     set score = 0, updated_at = timezone('utc', now())
-    where faction is not null;
+    where true;
   end if;
 
   update public.slots
@@ -173,7 +173,7 @@ begin
     backdoor_until = null,
     backdoor_owner_id = null,
     is_immune = false
-  where id is not null;
+  where true;
   get diagnostics v_slots = row_count;
 
   perform public.zt_ensure_server_backdoors();
@@ -210,7 +210,7 @@ begin
     buffs = '{}',
     current_node_id = null,
     pa_refreshed_at = timezone('utc', now())
-  where id is not null;
+  where true;
   get diagnostics v_profiles = row_count;
 
   if exists (
@@ -220,7 +220,7 @@ begin
       and table_name = 'profiles'
       and column_name = 'core_data'
   ) then
-    execute 'update public.profiles set core_data = 0 where id is not null';
+    execute 'update public.profiles set core_data = 0 where true';
   end if;
 
   update public.game_settings

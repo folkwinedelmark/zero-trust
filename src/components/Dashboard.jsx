@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Loader2, Radio, ScanSearch, ShieldAlert, Wine } from 'lucide-react'
 import { useAudio } from '../hooks/useAudio'
-import { actionProgress, formatRemaining } from '../lib/actions'
+import { actionProgress, formatRemaining, isSlotTimerExpired } from '../lib/actions'
 import { radarOccupancyLabel, sanitizeRadarSlot } from '../lib/abilities'
 import { gigsTargetingNode } from '../lib/gigs'
 import { isNodeDdosActive } from '../lib/hardware'
@@ -116,7 +116,7 @@ export default function Dashboard({
         </h1>
         <p className="mt-2 max-w-xl text-sm text-zinc-400">
           {isAnalyst
-            ? 'Panopticon attivo: occupancy e timer di tutti i server, senza login. I Ghost non compaiono sul radar.'
+            ? 'Panopticon attivo: occupancy sulla mappa e timer esatti sugli slot nemici, senza login. I Ghost non compaiono sul radar.'
             : 'Seleziona un nodo per accedere agli slot. Contromisure Trace/Kick sugli slot altrui.'}
         </p>
         {isAnalyst && (
@@ -239,6 +239,7 @@ export default function Dashboard({
                 <PanopticonSlots
                   slots={radarByNode[server.id] ?? []}
                   now={now}
+                  viewerId={viewerId}
                 />
               )}
               {isNodeDdosActive(server) && (
@@ -363,12 +364,16 @@ export default function Dashboard({
   )
 }
 
-function PanopticonSlots({ slots, now }) {
+function PanopticonSlots({ slots, now, viewerId }) {
   if (!slots.length) return null
   return (
     <ul className="mt-3 space-y-1.5 border-t border-zinc-800/80 pt-3">
       {slots.map((slot) => {
-        const label = radarOccupancyLabel(slot)
+        const expiredOwn =
+          Boolean(viewerId) &&
+          slot.user_id === viewerId &&
+          isSlotTimerExpired(slot, now)
+        const label = expiredOwn ? null : radarOccupancyLabel(slot)
         const occupied = Boolean(label)
         const showTimer = label === 'OCCUPATO' && slot.end_time
         const prog = showTimer ? actionProgress(slot, now) : null

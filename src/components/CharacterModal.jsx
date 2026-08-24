@@ -337,7 +337,7 @@ function PassiveCard({ passive }) {
         ) : null}
         <div className="min-w-0 flex-1">
           <p className="text-base font-medium text-emerald-100">{passive.name}</p>
-          <p className="mt-1 text-sm leading-relaxed text-zinc-400">
+          <p className="mt-1 text-sm leading-relaxed text-zinc-400 [overflow-wrap:anywhere]">
             {passive.blurb}
           </p>
           {passive.usageHint && (

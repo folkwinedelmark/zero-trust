@@ -79,7 +79,7 @@ export default function ClassSelectionModal({ session }) {
               type="button"
               disabled={session.busy}
               onClick={() => setPending(role)}
-              className="flex flex-col gap-4 border border-zinc-700 bg-zinc-950/70 p-4 text-left transition hover:border-amber-500/50 hover:bg-amber-500/5 disabled:opacity-60"
+              className="flex h-full flex-col gap-4 border border-zinc-700 bg-zinc-950/70 p-4 text-left transition hover:border-amber-500/50 hover:bg-amber-500/5 disabled:opacity-60"
             >
               <div className="flex items-start gap-3">
                 {role.iconSrc && (
@@ -96,7 +96,7 @@ export default function ClassSelectionModal({ session }) {
                   <p className="mt-1 text-[11px] uppercase tracking-wider text-amber-300/80">
                     {role.style}
                   </p>
-                  <p className="mt-2 text-xs leading-relaxed text-zinc-400">
+                  <p className="mt-2 text-xs leading-relaxed text-zinc-400 [overflow-wrap:anywhere]">
                     {role.lore}
                   </p>
                 </div>
@@ -110,7 +110,7 @@ export default function ClassSelectionModal({ session }) {
                   {passives
                     .filter((passive) => !passive.iconSrc)
                     .map((passive) => (
-                    <li key={passive.id} className="text-xs leading-relaxed text-zinc-300">
+                    <li key={passive.id} className="text-xs leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
                       <span className="text-cyan-300">{passive.name}.</span>{' '}
                       {passive.blurb}
                     </li>

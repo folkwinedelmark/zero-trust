@@ -65,6 +65,7 @@ export function useActionResolver({
   slots = [],
   refreshProfile,
   reloadLogs,
+  reloadMap,
 }) {
   const resolvingRef = useRef(false)
   const loggedKeysRef = useRef(new Set())
@@ -116,6 +117,11 @@ export function useActionResolver({
 
     await supabase.from('profiles').update({ status: 'idle' }).eq('id', userId)
   }, [])
+
+  const syncAfterResolve = useCallback(async () => {
+    await refreshProfile()
+    if (typeof reloadMap === 'function') void reloadMap()
+  }, [refreshProfile, reloadMap])
 
   const recordLog = useCallback(
     async (key, payload) => {
@@ -184,7 +190,7 @@ export function useActionResolver({
             })
           }
         } else {
-          // execute_trace ha già scritto il log attore + trace_received
+          // execute_trace ha già scritto il log di esito
         }
 
         const revealed = data?.revealed ?? 'Unknown'
@@ -221,7 +227,7 @@ export function useActionResolver({
           outcome,
           targetSlot,
         })
-        await refreshProfile()
+        await syncAfterResolve()
         return
       }
 
@@ -263,7 +269,7 @@ export function useActionResolver({
               },
             })
           }
-          await refreshProfile()
+          await syncAfterResolve()
           return
         }
 
@@ -271,7 +277,7 @@ export function useActionResolver({
           console.warn('[execute_kick] not blocked', data)
         }
 
-        await refreshProfile()
+        await syncAfterResolve()
         return
       }
 
@@ -286,12 +292,12 @@ export function useActionResolver({
           console.error('[complete_base_action]', error)
           await finishOwnSlot(activeSlot.id, profile.id)
           if (alreadyResolved(error)) {
-            await refreshProfile()
+            await syncAfterResolve()
             return
           }
         } else {
           // complete_base_action ha già inserito il log di successo
-          await refreshProfile()
+          await syncAfterResolve()
           return
         }
 
@@ -335,12 +341,12 @@ export function useActionResolver({
           console.error('[complete_base_action writeLog]', logError)
         }
 
-        await refreshProfile()
+        await syncAfterResolve()
         return
       }
 
       await finishOwnSlot(activeSlot.id, profile.id)
-      await refreshProfile()
+      await syncAfterResolve()
     } catch (err) {
       console.error('[resolveAction]', err)
     } finally {
@@ -351,9 +357,9 @@ export function useActionResolver({
     activeSlot,
     nodes,
     slots,
-    refreshProfile,
     finishOwnSlot,
     recordLog,
+    syncAfterResolve,
     stopActionLoops,
     playSuccess,
   ])
@@ -459,17 +465,17 @@ export function useActionResolver({
         })
       }
 
-      await refreshProfile()
+      await syncAfterResolve()
       return { error: null }
     } catch (err) {
       return { error: err }
     } finally {
       resolvingRef.current = false
     }
-  }, [profile, activeSlot, nodes, refreshProfile, finishOwnSlot, recordLog, stopActionLoops, playFail])
+  }, [profile, activeSlot, nodes, finishOwnSlot, recordLog, syncAfterResolve, stopActionLoops, playFail])
 
   useEffect(() => {
-    if (!profile || profile.status !== 'busy' || !activeSlot) return
+    if (!profile || !activeSlot?.end_time) return
 
     const tick = () => {
       void resolveAction()
@@ -477,7 +483,14 @@ export function useActionResolver({
 
     tick()
     const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') tick()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [profile, activeSlot, resolveAction])
 
   // Kick/Trace: se il bersaglio ha già lasciato lo slot, abortisci subito.

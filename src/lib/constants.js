@@ -271,9 +271,9 @@ export const ROLES = [
     icon: 'ScanSearch',
     iconSrc: '/dataanalyst.png',
     style: 'Occhio sulla rete. Intel, trace, doxxing.',
-    lore: 'Vedi occupazione e timer dalla mappa globale. I tuoi Trace bucano lo stealth dei Ghost. Raccogli storie, non solo pacchetti — e le vendi come intel.',
+    lore: 'Vedi occupazione dalla mappa globale e i timer esatti sugli slot nemici. I tuoi Trace bucano lo stealth dei Ghost. Raccogli storie, non solo pacchetti — e le vendi come intel.',
     blurb:
-      'Panopticon: occupancy e timer sulla mappa. Trace −40% e penetra lo stealth dei Ghost.',
+      'Panopticon: occupancy sulla mappa e timer esatti sugli slot nemici. Trace −40% e penetra lo stealth dei Ghost.',
   },
   {
     id: 'executive',

@@ -507,8 +507,9 @@ function SectionClasses() {
           <p className="mt-1 text-base leading-relaxed text-slate-300">
             <span className="text-slate-100">Panopticon</span>
             {' — '}
-            Vede occupazione e timer di tutti i server dalla mappa (i Ghost non
-            compaiono). Timer Trace −40%. I tuoi Trace e la Gigs Board
+            Vede occupazione di tutti i server dalla mappa (i Ghost non
+            compaiono) e i timer esatti di connessione sugli slot nemici, mentre
+            gli altri vedono solo stime. Timer Trace −40%. I tuoi Trace
             penetrano lo stealth dei Ghost, rivelando la vera identità.
           </p>
         </div>

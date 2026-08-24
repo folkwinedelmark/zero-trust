@@ -10,6 +10,7 @@ import LobbyView from './components/LobbyView'
 import ScheduledWaitingView from './components/ScheduledWaitingView'
 import EndGameModal from './components/EndGameModal'
 import GameShell from './components/GameShell'
+import MatchLockedView from './components/MatchLockedView'
 import VersionWatermark from './components/VersionWatermark'
 
 export default function App() {
@@ -95,6 +96,14 @@ function AuthenticatedFlow() {
     return (
       <main className="relative z-10 flex min-h-svh items-center justify-center px-4 py-10">
         <LobbyView session={session} />
+      </main>
+    )
+  }
+
+  if (!profile?.faction) {
+    return (
+      <main className="relative z-10 flex min-h-svh items-center justify-center px-4 py-10">
+        <MatchLockedView />
       </main>
     )
   }

@@ -21,6 +21,8 @@ import {
   findFreeSlot,
   formatRemaining,
   isHuntableSlot,
+  isSlotTimerExpired,
+  occupancyFogLabel,
 } from '../lib/actions'
 import {
   getAbility,
@@ -54,7 +56,6 @@ import { writeLog } from '../lib/logging'
 import {
   actionLabel,
   msgActionStart,
-  msgIncoming,
   msgKickStart,
   msgTraceStart,
 } from '../lib/logFormat'
@@ -190,13 +191,18 @@ export default function NodeView({
     [slotsByNode, nodeId, profile?.role],
   )
 
-  const isBusy = profile?.status === 'busy'
+  const isBusy =
+    profile?.status === 'busy' && !isSlotTimerExpired(activeSlot, now)
   const isBlocked = Boolean(profile?.is_blocked)
   const isSysadmin = profile?.role === 'sysadmin'
   const isAnalyst = profile?.role === 'analyst'
   const isGhost = profile?.role === 'ghost'
   const mySlotOnThisNode =
-    activeSlot && activeSlot.node_id === nodeId ? activeSlot : null
+    activeSlot &&
+    activeSlot.node_id === nodeId &&
+    !isSlotTimerExpired(activeSlot, now)
+      ? activeSlot
+      : null
 
   const nodeGigs = useMemo(
     () => gigsTargetingNode(executorGigs, nodeId),
@@ -265,6 +271,14 @@ export default function NodeView({
   ])
 
   if (!node) {
+    if (!nodes?.length) {
+      return (
+        <div className="mx-auto flex max-w-3xl items-center justify-center gap-3 py-10 text-sm text-zinc-400">
+          <Loader2 className="h-5 w-5 animate-spin text-cyan-400" />
+          Collegamento al server…
+        </div>
+      )
+    }
     return (
       <div className="mx-auto max-w-3xl py-10 text-center">
         <p className="text-sm text-zinc-400">Nodo non trovato.</p>
@@ -560,7 +574,6 @@ export default function NodeView({
         occupancyStartedAt: selectedEnemySlot.start_time,
       })
       const knownHandle = isKick ? priorIntel?.handle ?? null : null
-      const targetAction = selectedEnemySlot.action_type ?? null
 
       const result = await occupySlot({
         profile,
@@ -611,31 +624,6 @@ export default function NodeView({
           reason: 'countermeasure_started',
         },
       })
-
-      if (selectedEnemySlot.user_id) {
-        await writeLog({
-          eventType: isKick ? 'kick_incoming' : 'trace_incoming',
-          message: msgIncoming({
-            kind: isKick ? 'kick' : 'trace',
-            nodeName: node.name,
-            targetSlot: selectedEnemySlot.slot_id,
-            targetAction,
-          }),
-          outcome: 'info',
-          nodeId: node.id,
-          actorId: profile.id,
-          targetId: selectedEnemySlot.user_id,
-          meta: {
-            target_slot: selectedEnemySlot.slot_id,
-            compromised_slot: selectedEnemySlot.slot_id,
-            compromised_action: targetAction,
-            target_action: targetAction,
-            node_name: node.name,
-            tone: 'warning',
-            perspective: 'target',
-          },
-        })
-      }
 
       setSelectedEnemySlot(null)
     } catch (err) {
@@ -894,13 +882,18 @@ export default function NodeView({
           const locked = isSlotLocked(slot, now)
           const backdoor = isBackdoorSlot(slot)
           const backdoorLocked = isBackdoorRestricted(slot, profile)
-          const occupied = Boolean(slot.user_id || slot.is_decoy)
           const isMine = slot.user_id === profile?.id
+          const occupied = Boolean(
+            (slot.user_id || slot.is_decoy) &&
+              !(isMine && isSlotTimerExpired(slot, now)),
+          )
           const isEnemy = occupied && !isMine
           const isSelectedFree = selectedFreeSlot?.id === slot.id
           const isSelectedEnemy = selectedEnemySlot?.id === slot.id
           const slotProg =
-            isMine && slot.end_time ? actionProgress(slot, now) : null
+            isMine && occupied && slot.end_time
+              ? actionProgress(slot, now)
+              : null
           const slotIntel = !isMine
             ? getActiveSlotIntel(profile?.id, slot.id, {
                 targetUserId: slot.user_id ?? null,
@@ -913,6 +906,10 @@ export default function NodeView({
             slotIntel?.targetAction || (slotRevealed ? slot.action_type : null)
 
           const huntable = isHuntableSlot(slot)
+          const occupancyHint =
+            isEnemy && huntable
+              ? occupancyFogLabel(slot, now, { isAnalyst })
+              : null
           const unstable = isEnemy && !huntable
           const attackDetected =
             isEnemy && isSysAdminIntrusionVisible(profile, node, slot)
@@ -1046,6 +1043,11 @@ export default function NodeView({
                       {formatRemaining(slotProg.remainingMs)}
                     </p>
                   )}
+                  {occupancyHint && (
+                    <p className="text-xs italic text-slate-400">
+                      {occupancyHint}
+                    </p>
+                  )}
                   {isEnemy && huntable && !isBusy && !isBlocked && (
                     <p className="pt-1 text-[10px] uppercase tracking-wider text-red-300/80">
                       {isSysadmin
@@ -1141,6 +1143,9 @@ export default function NodeView({
               occupancyStartedAt: selectedEnemySlot.start_time,
             }) || 'Unknown'
           } · costo ${debug.paCost(ACTION_PA_COST)} PA${debug.bypassCosts ? ' (debug)' : ''}`}
+          occupancyHint={occupancyFogLabel(selectedEnemySlot, now, {
+            isAnalyst,
+          })}
           actions={COUNTER_ACTIONS}
           role={profile?.role}
           instant={debug.instantActions}
@@ -1207,6 +1212,7 @@ export default function NodeView({
 function ActionPanel({
   title,
   subtitle,
+  occupancyHint = null,
   actions,
   role,
   instant = false,
@@ -1234,6 +1240,10 @@ function ActionPanel({
           Annulla
         </button>
       </div>
+
+      {occupancyHint ? (
+        <p className="mb-3 text-xs italic text-slate-400">{occupancyHint}</p>
+      ) : null}
 
       <div className="flex flex-col gap-3">
         {actions.map((action) => {

@@ -34,7 +34,7 @@ import {
   roleLabel,
 } from '../lib/constants'
 import { CONFIRM_CLOSE_CYCLE } from '../lib/gameSession'
-import { actionProgress, formatRemaining } from '../lib/actions'
+import { actionProgress, formatRemaining, isSlotTimerExpired } from '../lib/actions'
 import { getActionIcon } from '../lib/actionIcons'
 import { parseEquippedHardware, stealthRemainingMs } from '../lib/hardware'
 import { getCatalogItem, inventoryPassives } from '../lib/afterlifeCatalog'
@@ -132,7 +132,8 @@ export default function GameHeader({
     profile.status === 'busy' &&
       activeSlot?.user_id === profile.id &&
       activeSlot?.action_type &&
-      activeSlot?.end_time,
+      activeSlot?.end_time &&
+      !isSlotTimerExpired(activeSlot, now),
   )
   const { progress, remainingMs } = busy
     ? actionProgress(activeSlot, now)

@@ -26,7 +26,7 @@ export const ROLE_PASSIVES = {
       id: 'panopticon',
       name: 'Panopticon',
       blurb:
-        "Puoi vedere l'occupazione e i timer di tutti i server dalla Mappa Globale. Il timer per l'azione Trace è ridotto del 40%. I tuoi Trace e la Gigs Board penetrano il protocollo stealth dei Ghost, rivelando la loro vera identità.",
+        "Puoi vedere l'occupazione di tutti i server dalla Mappa Globale e ottieni i timer esatti di connessione sugli slot nemici (mentre gli altri vedono solo stime). Il timer per l'azione Trace è ridotto del 40% e i tuoi Trace penetrano il protocollo stealth dei Ghost.",
     },
   ],
   executive: [

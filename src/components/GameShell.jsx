@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTravel } from '../hooks/useTravel'
 import { TIME_TRAVEL } from '../lib/constants'
 import { beginTravel, disconnectToMap, isTraveling, resolveTravelMs } from '../lib/travel'
@@ -31,7 +31,13 @@ export default function GameShell({ session }) {
   const map = useRealtimeMap()
   const systemLogs = useSystemLogs()
   const gigs = useGigs()
-  const [view, setView] = useState({ type: 'map' })
+  const [view, setView] = useState(() => {
+    const nodeId = profile?.current_node_id
+    if (nodeId && !isTraveling(profile)) {
+      return { type: 'node', id: nodeId }
+    }
+    return { type: 'map' }
+  })
   const [travelError, setTravelError] = useState(null)
   const [loadoutOpen, setLoadoutOpen] = useState(false)
   const [abilitiesOpen, setAbilitiesOpen] = useState(false)
@@ -58,6 +64,7 @@ export default function GameShell({ session }) {
     slots: map.slots,
     refreshProfile,
     reloadLogs: systemLogs.reload,
+    reloadMap: map.reload,
   })
 
   const { threats } = useIncomingThreats({
@@ -73,6 +80,24 @@ export default function GameShell({ session }) {
       setView({ type: 'node', id: nodeId })
     },
   })
+
+  const hydratedLocationRef = useRef(Boolean(profile?.current_node_id))
+
+  useEffect(() => {
+    if (hydratedLocationRef.current) return
+    if (!profile) return
+    if (isTraveling(profile)) {
+      hydratedLocationRef.current = true
+      return
+    }
+    if (map.loading) return
+    hydratedLocationRef.current = true
+    const nodeId = profile.current_node_id
+    if (!nodeId) return
+    const node = map.nodes.find((n) => n.id === nodeId)
+    if (!node || node.type !== 'server') return
+    setView({ type: 'node', id: nodeId })
+  }, [profile, map.loading, map.nodes])
 
   const isBlocked = Boolean(profile?.is_blocked)
   const travelTotalMs = travel.intent?.travelMs || TIME_TRAVEL
@@ -101,7 +126,8 @@ export default function GameShell({ session }) {
     if (isBlocked || !profile) return
     setTravelError(null)
 
-    if (profile.status === 'busy') {
+    // Bypass travel only when already connected to this node in the DB.
+    if (profile.current_node_id === id) {
       setView({ type: 'node', id })
       return
     }
