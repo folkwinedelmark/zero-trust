@@ -8,6 +8,7 @@ import {
   CORE_DATA_ITEM,
 } from '../lib/afterlifeCatalog'
 import {
+  AUCTION_ANON_SELLER,
   AUCTION_DURATIONS,
   AUCTION_MAX_PRICE,
   AUCTION_MIN_PRICE,
@@ -16,7 +17,7 @@ import {
   nextBidMin,
 } from '../lib/auctions'
 import { auctionBid, auctionCreate } from '../lib/auctionsApi'
-import { factionCodename, isMercFaction } from '../lib/constants'
+import { isMercFaction } from '../lib/constants'
 import { writeLog } from '../lib/logging'
 import { useAuctions } from '../hooks/useAuctions'
 import { useNightTruce } from '../hooks/useNightTruce'
@@ -207,6 +208,8 @@ export default function AuctionHouse({
                 >
                   {auctionStatusLabel(auction.status)}
                   {' · '}
+                  <span className="text-slate-500">{AUCTION_ANON_SELLER}</span>
+                  {' · '}
                   {auction.current_bid > 0
                     ? `${auction.current_bid} ₵`
                     : `base ${auction.start_price} ₵`}
@@ -332,7 +335,6 @@ function AuctionRow({ auction, now, userId, creds, onBid, locked = false }) {
   }, [auction.current_bid, auction.start_price])
 
   const remaining = Math.max(0, new Date(auction.end_time).getTime() - now)
-  const sellerName = auction.seller?.name ?? 'Sconosciuto'
   const bidderName = auction.highest_bidder?.name ?? null
   const isSeller = auction.seller_id === userId
   const isWinning = auction.highest_bidder_id === userId
@@ -357,11 +359,8 @@ function AuctionRow({ auction, now, userId, creds, onBid, locked = false }) {
               </span>
             )}
           </p>
-          <p className="mt-0.5 text-xs text-zinc-500">
-            Venditore {sellerName}
-            {auction.seller?.faction
-              ? ` · ${factionCodename(auction.seller.faction)}`
-              : ''}
+          <p className="mt-0.5 text-xs text-slate-500">
+            Venditore: {AUCTION_ANON_SELLER}
           </p>
           <p className="mt-1 text-xs text-amber-200/90">
             {Number(auction.current_bid) > 0

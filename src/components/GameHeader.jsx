@@ -34,7 +34,12 @@ import {
   roleLabel,
 } from '../lib/constants'
 import { CONFIRM_CLOSE_CYCLE } from '../lib/gameSession'
-import { actionProgress, formatRemaining, isSlotTimerExpired } from '../lib/actions'
+import {
+  actionProgress,
+  CONFIRM_ABORT_ACTION,
+  formatRemaining,
+  isSlotTimerExpired,
+} from '../lib/actions'
 import { getActionIcon } from '../lib/actionIcons'
 import { parseEquippedHardware, stealthRemainingMs } from '../lib/hardware'
 import { getCatalogItem, inventoryPassives } from '../lib/afterlifeCatalog'
@@ -129,8 +134,7 @@ export default function GameHeader({
   if (!profile) return null
 
   const busy = Boolean(
-    profile.status === 'busy' &&
-      activeSlot?.user_id === profile.id &&
+    activeSlot?.user_id === profile.id &&
       activeSlot?.action_type &&
       activeSlot?.end_time &&
       !isSlotTimerExpired(activeSlot, now),
@@ -144,6 +148,7 @@ export default function GameHeader({
 
   async function handleAbort() {
     if (!onAbort || aborting) return
+    if (!window.confirm(CONFIRM_ABORT_ACTION)) return
     setAborting(true)
     await onAbort()
     setAborting(false)

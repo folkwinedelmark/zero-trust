@@ -77,6 +77,10 @@ export default function LogTerminal({ logs, loading, error, viewerId }) {
               }
               const tone = LOG_TONES[toneKey] ?? LOG_TONES.neutral
               const tag = displayTag(log)
+              const globalAlarm =
+                log.event_type === 'extract_global' ||
+                log.meta?.tag === 'ALLARME GLOBALE' ||
+                String(message).startsWith('[ALLARME GLOBALE]')
               const iAmTarget =
                 viewerId &&
                 log.target_id === viewerId &&
@@ -101,9 +105,19 @@ export default function LogTerminal({ logs, loading, error, viewerId }) {
                   <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:gap-3">
                     <div className="shrink-0 whitespace-nowrap font-bold">
                       <span className="mr-2 text-zinc-500">[{time}]</span>
-                      <span className={tone.tag}>[{tag}]</span>
+                      <span
+                        className={
+                          globalAlarm ? 'font-bold text-red-500' : tone.tag
+                        }
+                      >
+                        [{tag}]
+                      </span>
                     </div>
-                    <div className={`min-w-0 flex-1 break-words ${tone.text}`}>
+                    <div
+                      className={`min-w-0 flex-1 break-words ${
+                        globalAlarm ? 'font-bold text-red-500' : tone.text
+                      }`}
+                    >
                       {body}
                     </div>
                   </div>

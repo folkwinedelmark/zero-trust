@@ -18,6 +18,7 @@ import { NIGHT_TRUCE_DENIED } from '../lib/nightTruce'
 import {
   ACTION_PA_COST,
   actionProgress,
+  CONFIRM_ABORT_ACTION,
   findFreeSlot,
   formatRemaining,
   isHuntableSlot,
@@ -153,12 +154,14 @@ export default function NodeView({
   logsError = null,
   viewerId = null,
   reloadLogs = null,
+  reloadMap = null,
+  upsertSlot = null,
   executorGigs = [],
 }) {
   const { profile, refreshProfile } = useAuth()
   const debug = useDebug()
   const abilities = useAbilities()
-  const { playClick, playSuccess, playError, playLogout } = useAudio()
+  const { playClick, playSuccess, playError } = useAudio()
   const { locked: actionsLocked } = useNightTruce()
   const [selectedFreeSlot, setSelectedFreeSlot] = useState(null)
   const [selectedEnemySlot, setSelectedEnemySlot] = useState(null)
@@ -167,7 +170,6 @@ export default function NodeView({
   const [actionError, setActionErrorState] = useState(null)
   const [actionOk, setActionOk] = useState(null)
   const [now, setNow] = useState(Date.now())
-  const [confirmLeave, setConfirmLeave] = useState(false)
   const [abilityConfirm, setAbilityConfirm] = useState(null)
   const observerSweepRef = useRef(new Set())
 
@@ -194,7 +196,9 @@ export default function NodeView({
   )
 
   const isBusy =
-    profile?.status === 'busy' && !isSlotTimerExpired(activeSlot, now)
+    (profile?.status === 'busy' ||
+      Boolean(activeSlot?.action_type && activeSlot?.end_time)) &&
+    !isSlotTimerExpired(activeSlot, now)
   const isBlocked = Boolean(profile?.is_blocked)
   const isSysadmin = profile?.role === 'sysadmin'
   const isAnalyst = profile?.role === 'analyst'
@@ -473,6 +477,14 @@ export default function NodeView({
     }
   }
 
+  async function syncAfterActionStart(claimed = null) {
+    if (claimed?.id) upsertSlot?.(claimed)
+    await Promise.all([
+      refreshProfile(),
+      typeof reloadMap === 'function' ? reloadMap() : Promise.resolve(),
+    ])
+  }
+
   async function startBaseAction(actionId) {
     if (!selectedFreeSlot || !profile || submitting) return
     if (isBusy) {
@@ -520,7 +532,7 @@ export default function NodeView({
 
       playSuccess()
       rememberNodeName(node.id, node.name)
-      await refreshProfile()
+      await syncAfterActionStart(result.claimed)
       if (!isStealthed(profile)) {
         await writeLog({
           eventType: `${actionId}_start`,
@@ -611,7 +623,7 @@ export default function NodeView({
 
       playSuccess()
       rememberNodeName(node.id, node.name)
-      await refreshProfile()
+      await syncAfterActionStart(result.claimed)
 
       await writeLog({
         eventType: isKick ? 'kick_start' : 'trace_start',
@@ -656,6 +668,7 @@ export default function NodeView({
 
   async function handleAbort() {
     if (!onAbort || aborting) return
+    if (!window.confirm(CONFIRM_ABORT_ACTION)) return
     setAborting(true)
     setActionError(null)
     const { error } = await onAbort()
@@ -701,29 +714,19 @@ export default function NodeView({
       setSelectedFreeSlot(null)
     }
     await reloadLogs?.()
+    if (typeof reloadMap === 'function') await reloadMap()
   }
 
   return (
     <div className="mx-auto w-full max-w-3xl">
       <button
         type="button"
-        onClick={() => setConfirmLeave(true)}
+        onClick={() => void onBack()}
         className="mb-6 inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-zinc-200"
       >
         <ArrowLeft className="h-4 w-4" />
         Network Map
       </button>
-
-      {confirmLeave && (
-        <LeaveServerModal
-          onCancel={() => setConfirmLeave(false)}
-          onConfirm={() => {
-            setConfirmLeave(false)
-            playLogout()
-            onBack()
-          }}
-        />
-      )}
 
       {lastTraceResult && (
         <TraceResultBanner
@@ -1375,34 +1378,3 @@ function ActionPanel({
   )
 }
 
-function LeaveServerModal({ onCancel, onConfirm }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 px-4">
-      <div className="w-full max-w-md border border-zinc-600 bg-zinc-900 p-5">
-        <p className="font-display text-sm uppercase tracking-wider text-amber-300">
-          Disconnect
-        </p>
-        <p className="mt-2 text-sm text-zinc-200">
-          Are you sure you want to disconnect? Returning to the Global Map will
-          require a new travel sequence.
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="border border-zinc-600 px-3 py-1.5 text-[11px] uppercase tracking-wider text-zinc-300 hover:border-zinc-400"
-          >
-            Annulla
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="border border-amber-500/50 bg-amber-500/10 px-3 py-1.5 text-[11px] uppercase tracking-wider text-amber-200 hover:bg-amber-500/20"
-          >
-            Disconnetti
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}

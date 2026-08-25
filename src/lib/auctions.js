@@ -45,6 +45,8 @@ export function canPlaceOffer(bidAmount, creds, auction) {
   return amount >= floor
 }
 
+export const AUCTION_ANON_SELLER = '[ VENDITORE ANONIMO ]'
+
 export function auctionStatusLabel(status) {
   if (status === 'SOLD') return 'Venduta'
   if (status === 'EXPIRED') return 'Scaduta'

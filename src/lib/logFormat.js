@@ -26,6 +26,7 @@ export const ACTION_LABELS = {
   class_intel: 'INTEL',
   match_end: 'SYSTEM',
   intrusion_alert: 'ALLARME',
+  extract_global: 'ALLARME GLOBALE',
 }
 
 /** Categoria UI → palette */
@@ -49,6 +50,11 @@ export const LOG_TONES = {
     row: 'border-l-red-500/80 bg-red-500/10',
     tag: 'text-red-400',
     text: 'text-red-50/90',
+  },
+  global: {
+    row: 'border-l-red-500 bg-red-500/15',
+    tag: 'font-bold text-red-500',
+    text: 'font-bold text-red-500',
   },
   neutral: {
     row: 'border-l-zinc-600 bg-transparent',
@@ -106,6 +112,7 @@ export function resolveTone(log, viewerId) {
     type === 'asset_freeze_received' ||
     type === 'doxxing_received' ||
     type === 'intrusion_alert' ||
+    type === 'extract_global' ||
     type.includes('blocked') ||
     (type === 'kick' && iAmTarget && outcome === 'success')
   ) {
@@ -263,7 +270,8 @@ function isGlobalSystemLog(log) {
     type === 'game_start' ||
     type === 'lobby_reset' ||
     type === 'auction_global' ||
-    type === 'intrusion_alert'
+    type === 'intrusion_alert' ||
+    type === 'extract_global'
   ) {
     return true
   }
@@ -273,7 +281,8 @@ function isGlobalSystemLog(log) {
     msg.startsWith('[SYSTEM]') ||
     msg.startsWith('[ASTA GLOBALE]') ||
     msg.startsWith('[NET]') ||
-    msg.startsWith('[ALLARME INTRUSIONE]')
+    msg.startsWith('[ALLARME INTRUSIONE]') ||
+    msg.startsWith('[ALLARME GLOBALE]')
   )
 }
 

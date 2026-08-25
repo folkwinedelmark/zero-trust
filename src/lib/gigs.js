@@ -22,6 +22,33 @@ export const GIG_TIME_LIMITS = [
   { seconds: 21600, label: '6 ore' },
 ]
 
+/** Minuti minimi di deadline dopo accept (travel + azione + buffer). */
+export const GIG_MIN_DEADLINE_MINUTES = {
+  ATTACK: 30,
+  DEFEND: 30,
+  FARM: 30,
+  TRACE: 15,
+  KICK: 15,
+}
+
+export function gigMinDeadlineMinutes(actionId) {
+  const key = String(actionId ?? '').toUpperCase()
+  return GIG_MIN_DEADLINE_MINUTES[key] ?? 15
+}
+
+export function gigMinDeadlineSeconds(actionId) {
+  return gigMinDeadlineMinutes(actionId) * 60
+}
+
+export function isGigDeadlineTooShort(actionId, timeLimitSeconds) {
+  return Number(timeLimitSeconds) < gigMinDeadlineSeconds(actionId)
+}
+
+export function gigDeadlineInsufficientMessage(actionId) {
+  const min = gigMinDeadlineMinutes(actionId)
+  return `Il tempo concesso è insufficiente per eseguire questa operazione. Minimo richiesto: ${min} minuti.`
+}
+
 export function gigCreateCost(reward, role) {
   const n = Math.max(0, Math.round(Number(reward) || 0))
   if (role === 'executive') {

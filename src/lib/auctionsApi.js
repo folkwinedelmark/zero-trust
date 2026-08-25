@@ -31,7 +31,6 @@ const AUCTION_SELECT = `
   status,
   created_at,
   resolved_at,
-  seller:profiles!seller_id(id, name, faction),
   highest_bidder:profiles!highest_bidder_id(id, name, faction)
 `
 

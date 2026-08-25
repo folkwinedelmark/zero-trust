@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTravel } from '../hooks/useTravel'
+import { useAudio } from '../hooks/useAudio'
 import { TIME_TRAVEL } from '../lib/constants'
-import { beginTravel, disconnectToMap, isTraveling, resolveTravelMs } from '../lib/travel'
+import {
+  beginTravel,
+  CONFIRM_LEAVE_SERVER,
+  disconnectToMap,
+  isTraveling,
+  resolveTravelMs,
+} from '../lib/travel'
 import { rememberNodeName } from '../lib/nodeName'
 import CharacterModal from './CharacterModal'
 import IntelArchive from './IntelArchive'
@@ -27,6 +34,7 @@ import PlayerDirectoryModal from './PlayerDirectoryModal'
 /** Shell di gioco: mappa, timer, contromisure, log, alert minaccia */
 export default function GameShell({ session }) {
   const { profile, refreshProfile } = useAuth()
+  const { playLogout } = useAudio()
   useBgmMatch(true)
   const debug = useDebug()
   const map = useRealtimeMap()
@@ -85,6 +93,7 @@ export default function GameShell({ session }) {
   })
 
   const hydratedLocationRef = useRef(Boolean(profile?.current_node_id))
+  const leavingServerRef = useRef(false)
 
   useEffect(() => {
     if (hydratedLocationRef.current) return
@@ -113,7 +122,38 @@ export default function GameShell({ session }) {
     setDirectoryOpen(false)
   }
 
+  function isInsideServer() {
+    if (isTraveling(profile)) return false
+    return view.type === 'node' || Boolean(profile?.current_node_id)
+  }
+
+  /** If the player is connected to a server, warn and abort/disconnect before leaving. */
+  async function leaveServerIfNeeded() {
+    if (!isInsideServer()) return true
+    if (leavingServerRef.current) return false
+    if (!window.confirm(CONFIRM_LEAVE_SERVER)) return false
+
+    leavingServerRef.current = true
+    playLogout()
+    try {
+      if (activeSlot) {
+        await abortAction()
+      }
+      if (profile?.id) {
+        await disconnectToMap(profile)
+        await refreshProfile()
+      }
+      return true
+    } catch (err) {
+      console.error('[leaveServer]', err)
+      return true
+    } finally {
+      leavingServerRef.current = false
+    }
+  }
+
   async function goMap() {
+    if (!(await leaveServerIfNeeded())) return
     closeOverlays()
     setView({ type: 'map' })
     if (!profile?.id) return
@@ -160,8 +200,9 @@ export default function GameShell({ session }) {
     }
   }
 
-  function openAfterlife(id) {
+  async function openAfterlife(id) {
     if (isTraveling(profile)) return
+    if (!(await leaveServerIfNeeded())) return
     closeOverlays()
     if (isBlocked) {
       setView({ type: 'afterlife', id, section: 'helpdesk' })
@@ -170,12 +211,12 @@ export default function GameShell({ session }) {
     setView({ type: 'afterlife', id, section: 'hardware' })
   }
 
-  function openHubFromNav() {
+  async function openHubFromNav() {
     const hub =
       map.services.find((s) => s.name.toLowerCase().includes('afterlife')) ??
       map.services[0]
     if (!hub) return
-    openAfterlife(hub.id)
+    await openAfterlife(hub.id)
   }
 
   const afterlifeNode =
@@ -261,6 +302,8 @@ export default function GameShell({ session }) {
             logsError={systemLogs.error}
             viewerId={systemLogs.viewerId}
             reloadLogs={systemLogs.reload}
+            reloadMap={map.reload}
+            upsertSlot={map.upsertSlot}
             executorGigs={gigs.myExecuting}
           />
         ) : view.type === 'afterlife' && !travel.traveling ? (
@@ -283,7 +326,7 @@ export default function GameShell({ session }) {
             error={map.error}
             isBlocked={isBlocked}
             onSelectServer={openServer}
-            onSelectAfterlife={openAfterlife}
+            onSelectAfterlife={(id) => void openAfterlife(id)}
             logs={systemLogs.logs}
             logsLoading={systemLogs.loading}
             logsError={systemLogs.error}
@@ -337,7 +380,7 @@ export default function GameShell({ session }) {
           setDirectoryOpen(false)
           setLoadoutOpen(true)
         }}
-        onHub={openHubFromNav}
+        onHub={() => void openHubFromNav()}
         onRulebook={() => {
           setLoadoutOpen(false)
           setAbilitiesOpen(false)

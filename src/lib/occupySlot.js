@@ -87,7 +87,11 @@ export async function occupySlot({
   if (!error) {
     const payload = data && typeof data === 'object' ? data : {}
     if (payload.collided) return { collided: true, claimed: null }
-    return { collided: false, claimed: payload.claimed ?? payload }
+    const claimed = await resolveClaimedSlot(
+      payload.claimed ?? payload,
+      occupySlotId,
+    )
+    return { collided: false, claimed }
   }
 
   if (!isMissingRpc(error)) throw error
@@ -101,6 +105,16 @@ export async function occupySlot({
     start,
     end,
   })
+}
+
+async function resolveClaimedSlot(claimed, occupySlotId) {
+  if (claimed?.id && claimed.action_type && claimed.end_time) return claimed
+  const { data } = await supabase
+    .from('slots')
+    .select('*')
+    .eq('id', occupySlotId)
+    .maybeSingle()
+  return data ?? claimed ?? null
 }
 
 function isMissingRpc(error) {

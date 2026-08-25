@@ -133,6 +133,17 @@ export function useRealtimeMap() {
     return map
   }, [scores])
 
+  const upsertSlot = useCallback((row) => {
+    if (!row?.id) return
+    setSlots((prev) => {
+      const index = prev.findIndex((item) => item.id === row.id)
+      if (index === -1) return [...prev, row]
+      const next = [...prev]
+      next[index] = { ...prev[index], ...row }
+      return next
+    })
+  }, [])
+
   return {
     nodes,
     servers,
@@ -145,6 +156,7 @@ export function useRealtimeMap() {
     loading,
     error,
     reload: load,
+    upsertSlot,
   }
 }
 

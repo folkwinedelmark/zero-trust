@@ -1,6 +1,9 @@
 import { supabase } from './supabase'
 import { getTravelTimeMs, isNodeDdosActive } from './hardware'
 
+export const CONFIRM_LEAVE_SERVER =
+  'ATTENZIONE: Stai per abbandonare il server. Qualsiasi operazione in corso verrà immediatamente ANNULLATA. Vuoi procedere?'
+
 export function travelRemainingMs(profile, now = Date.now()) {
   if (profile?.status !== 'traveling' || !profile.travel_until) return 0
   return Math.max(0, new Date(profile.travel_until).getTime() - now)

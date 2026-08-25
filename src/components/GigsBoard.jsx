@@ -21,8 +21,11 @@ import {
   gigActionMeta,
   gigAbortConfirmCopy,
   gigCreateCost,
+  gigDeadlineInsufficientMessage,
   gigDeadlineMs,
+  gigMinDeadlineMinutes,
   gigStatusLabel,
+  isGigDeadlineTooShort,
   isGigExpired,
   maskGhostName,
   GHOST_BOARD_HANDLE,
@@ -146,6 +149,11 @@ export default function GigsBoard({
     if (creds < cost) {
       playError()
       setError(`Servono ${cost} ₵ in escrow`)
+      return null
+    }
+    if (isGigDeadlineTooShort(targetAction, timeLimit)) {
+      playError()
+      setError(gigDeadlineInsufficientMessage(targetAction))
       return null
     }
     const title = formatGigTitle(
@@ -309,19 +317,22 @@ function CreateGigForm({
   const [action, setAction] = useState(GIG_ACTIONS[0].id)
   const [targetId, setTargetId] = useState('')
   const [reward, setReward] = useState(100)
-  const [timeLimit, setTimeLimit] = useState(GIG_TIME_LIMITS[2].seconds)
+  const [timeLimit, setTimeLimit] = useState(GIG_TIME_LIMITS[3].seconds)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const cost = gigCreateCost(reward, profile?.role)
   const isExec = profile?.role === 'executive'
   const actionMeta = gigActionMeta(action)
   const targets = actionMeta?.kind === 'player' ? players : servers
+  const minDeadlineMinutes = gigMinDeadlineMinutes(action)
+  const deadlineTooShort = isGigDeadlineTooShort(action, timeLimit)
   const canPost =
     !busy &&
     !blocked &&
     Boolean(action) &&
     Boolean(targetId) &&
     reward >= GIG_MIN_REWARD &&
-    creds >= cost
+    creds >= cost &&
+    !deadlineTooShort
 
   return (
     <section className="rounded-xl border-2 border-dashed border-purple-500/30 bg-slate-950/50 p-6">
@@ -411,13 +422,23 @@ function CreateGigForm({
               className="mt-1.5 w-full border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm normal-case tracking-normal text-zinc-100 outline-none focus:border-fuchsia-500/60"
             >
               {GIG_TIME_LIMITS.map((opt) => (
-                <option key={opt.seconds} value={opt.seconds}>
+                <option
+                  key={opt.seconds}
+                  value={opt.seconds}
+                  disabled={opt.seconds < minDeadlineMinutes * 60}
+                >
                   {opt.label}
+                  {opt.seconds < minDeadlineMinutes * 60 ? ' — insufficiente' : ''}
                 </option>
               ))}
             </select>
           </label>
         </div>
+        {deadlineTooShort && (
+          <p className="text-left text-xs text-red-300">
+            {gigDeadlineInsufficientMessage(action)}
+          </p>
+        )}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-amber-200/90">

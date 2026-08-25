@@ -15,6 +15,9 @@ import {
   getFarmGain as farmGainWithHardware,
 } from './hardware'
 
+export const CONFIRM_ABORT_ACTION =
+  "Sei sicuro di voler annullare l'operazione in corso? I Punti Azione (PA) spesi non verranno rimborsati."
+
 /** Payload per liberare uno slot */
 export const EMPTY_SLOT = {
   user_id: null,
